@@ -1,41 +1,30 @@
 {
-  "institution": {
-    "name": "한국청소년활동진흥원",
-    "abbr": "KYWA",
-    "logo_path": "kywa_logo.png",
-    "website_url": "https://www.kywa.or.kr/main/main.jsp",
-    "app_title": "AI 위험성평가 시스템",
-    "app_subtitle": "스마트 안전관리 플랫폼"
-  },
-  "partner": {
-    "name": "기술 제공사",
-    "logo_path": "partner_logo.png"
-  },
-  "google_api": {
-    "drive_folder_id": "13RYVnDB7rrqLQYzB5Wa9WdWr0CHjm_MW",
-    "spreadsheet_id": "1kL18jQn5t0UX8ECpVEm3RHLQAWu7lum8_Wb-EtxkU5Q",
-    "sheet_name": "설문지 응답 시트1"
-  },
-  "ui_options": {
-    "facilities": ["중앙", "평창", "우주", "바이오", "해양", "미래", "생태", "본원"],
-    "departments": ["활동부", "협력부", "근로자대표", "청렴감사실", "기획혁신부", "인재경영부", "홍보전략부", "안전경영부", "재무회계부", "디지털정보부", "자회사"]
-  },
-  "ai_settings": {
-    "model_name": "gemini-flash-latest",
-    "persona": "당신은 한국청소년활동진흥원(KYWA)의 안전관리 전문가입니다."
-  },
-  "dashboard": {
-    "target_year": 2026,
-    "category_colors": {
-      "시설 안전": "#D32F2F", "화재 안전": "#FF5722", "재난 안전": "#880E4F",
-      "작업 안전": "#FFA000", "작업 특성": "#E64A19", "기계(설비)적 요인": "#795548",
-      "전기적 요인": "#FBC02D", "보건 및 위생관리": "#E91E63", "화학물질 관리": "#9C27B0",
-      "작업 환경": "#455A64", "보행 안전": "#1976D2", "활동 안전": "#388E3C"
+    "institution": {
+        "name": "한국청소년활동진흥원(KYWA)",
+        "abbr": "KYWA",
+        "app_title": "AI 위험성평가 시스템",
+        "app_subtitle": "GenAI 기반 현장 위험요인 발굴 지원",
+        "website_url": "https://www.kywa.or.kr",
+        "logo_path": "logo/inst_logo.png"
+    },
+    "partner": {
+        "logo_path": "logo/partner_logo.png"
+    },
+    "google_api": {
+        "drive_folder_id": "13RYVnDB7rrqLQYzB5Wa9WdWr0CHjm_MW",
+        "spreadsheet_id": "1kL18jQn5t0UX8ECpVEm3RHLQAWu7lum8_Wb-EtxkU5Q"
+    },
+    "ai_settings": {
+        "model_id": "gemini-flash-latest",
+        "persona": "당신은 한국청소년활동진흥원의 안전관리 전문가입니다. 시설의 안전 점검 사진을 분석하여 유해위험요인을 파악하고 적절한 개선대책을 제시하세요."
+    },
+    "ui_options": {
+        "facilities": ["본원", "천안", "평창", "고흥", "양주", "부산", "성장지원센터"],
+        "departments": ["기획운영본부", "안전경영부", "활동기획부", "활동운영부", "학교연계사업부", "가족사업부"]
+    },
+    "footer": {
+        "department": "안전경영부",
+        "email": "safety@kywa.or.kr",
+        "phone": "02-330-2824"
     }
-  },
-  "footer": {
-    "department": "경영지원본부 안전경영부",
-    "email": "archi01@kywa.or.kr",
-    "phone": "02-6959-7138"
-  }
 }
