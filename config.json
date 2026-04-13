@@ -1,9 +1,9 @@
 {
   "institution": {
-    "name": "한국청소년활동진흥원",
-    "abbr": "KYWA",
-    "logo_path": "kywa_logo.png",
-    "website_url": "https://www.kywa.or.kr/main/main.jsp",
+    "name": "한국산림복지진흥원",
+    "abbr": "FoWI",
+    "logo_path": "inst_logo.png",
+    "website_url": "https://www.fowi.or.kr/user/main/main.do",
     "app_title": "AI 위험성평가 시스템",
     "app_subtitle": "스마트 안전관리 플랫폼"
   },
@@ -34,7 +34,7 @@
     }
   },
   "footer": {
-    "department": "경영지원본부 안전경영부",
+    "department": "KYWA 경영지원본부 안전경영부",
     "email": "archi01@kywa.or.kr",
     "phone": "02-6959-7138"
   }
