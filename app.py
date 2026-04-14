@@ -340,7 +340,7 @@ with header_col2:
         </a>
         <p style='color: gray; margin-top: 5px; font-size: 1.05rem;'>
             {cfg['institution']['name']} 스마트 안전관리 플랫폼 
-            <span style='font-size: 2rem; letter-spacing: 0.5px; margin-left: 7px;'>
+            <span style='font-size: 1rem; letter-spacing: 0.5px; margin-left: 7px;'>
                 Powered by <span style='color: #ff4b4b; font-weight: bold;'>KYWA 한국청소년활동진흥원</span>
             </span>
         </p>
