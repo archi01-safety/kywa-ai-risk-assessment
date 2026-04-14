@@ -1,17 +1,23 @@
 import streamlit as st
+import json  # [2]번에 있던 json 임포트를 위로 올림
 
-# [1] 페이지 설정 (반드시 모든 st 함수 중 가장 처음에 위치)
-# cfg 변수가 선언된 이후에 실행되어야 합니다.
+# --- [0] 설정 파일 로드 (가장 먼저 실행) ---
+def load_config():
+    with open('config.json', 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+cfg = load_config()  # cfg 변수를 먼저 만들어야 아래에서 쓸 수 있습니다.
+
+# [1] 페이지 설정 (이제 cfg를 인식할 수 있습니다)
 st.set_page_config(
     page_title=f"{cfg['institution']['abbr']} AI 위험성평가 시스템", 
     layout="wide", 
     page_icon="🚨"
 )
 
-# [2] 필수 라이브러리 임포트
+# [2] 나머지 필수 라이브러리 임포트 (기존 내용 유지)
 import os
 import ssl
-import json
 import requests
 import io
 import datetime
@@ -23,8 +29,8 @@ import cv2
 import plotly.express as px
 from PIL import Image
 from docx import Document
-import google.genai as genai  # 최신 라이브러리로 교체
-from PIL import Image, ImageFilter # 새로 넣음
+import google.genai as genai  
+from PIL import Image, ImageFilter 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
