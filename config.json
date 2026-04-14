@@ -14,7 +14,7 @@
   "google_api": {
     "drive_folder_id": "0AOWsQVSc6RRvUk9PVA",
     "spreadsheet_id": "1-WH4TNSf7bk59YkWQPOq2jn68VqeWH-65WL3CcXlqAw",
-    "sheet_name": "설문지 응답 시트1"
+    "sheet_name": "시트1"
   },
   "ui_options": {
     "facilities": ["중앙", "평창", "우주", "바이오", "해양", "미래", "생태", "본원"],
