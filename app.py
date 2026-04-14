@@ -304,19 +304,25 @@ except Exception as e:
 header_col1, header_col2 = st.columns([1, 4])
 
 with header_col1:
-    # 이미지가 성공적으로 로드되었을 때만 <img> 태그 사용
+    # 1. config.json의 구조에 맞춰 변수 할당
+    # 'website_url'과 'abbr'을 동적으로 가져옵니다.
+    inst_url = cfg['institution'].get('website_url', 'https://www.kywa.or.kr')
+    inst_abbr = cfg['institution'].get('abbr', 'KYWA')
+
+    # 2. 로고 이미지 표출 로직
     if local_logo_url:
+        # 로고 클릭 시 해당 기관의 홈페이지로 이동
         st.markdown(f'''
-            <a href="https://www.kywa.or.kr/main/main.jsp" target="_blank">
+            <a href="{inst_url}" target="_blank">
                 <img src="{local_logo_url}" width="300" class="logo-img">
             </a>
         ''', unsafe_allow_html=True)
     else:
-        # 실패 시 깨진 이미지 아이콘 대신 텍스트 링크 표시 (안전장치)
-        st.markdown('''
-            <a href="https://www.kywa.or.kr/main/main.jsp" target="_blank" 
+        # 로고 로딩 실패 시 텍스트(영문 약어)로 대체 표출
+        st.markdown(f'''
+            <a href="{inst_url}" target="_blank" 
                style="text-decoration:none; color:#ff4b4b; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
-               KYWA
+                {inst_abbr}
             </a>
         ''', unsafe_allow_html=True)
 
