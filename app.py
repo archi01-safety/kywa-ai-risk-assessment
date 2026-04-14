@@ -798,10 +798,7 @@ if st.session_state.analysis_results:
 def load_dashboard_data():
     # 1. config.json에서 구글 API 관련 설정 가져오기
     api_cfg = cfg.get("google_api", {})
-    spreadsheet_id = api_cfg.get("spreadsheet_id", "")
-if not spreadsheet_id:
-    st.error("스프레드시트 ID가 설정되지 않았습니다. config.json을 확인해주세요.")
-    return pd.DataFrame()
+    spreadsheet_id = api_cfg.get("spreadsheet_id", "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8")
     sheet_name = api_cfg.get("sheet_name", "시트1")
 
     # 2. 시트 이름을 사용하여 CSV 내보내기 URL 생성
