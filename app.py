@@ -323,11 +323,13 @@ with header_col1:
             </a>
         ''', unsafe_allow_html=True)
     else:
-        # 로고 로딩 실패 시 텍스트(영문 약어)로 대체 표출
+
+        # 로고 로딩 실패 시 텍스트(영문 약어 x KYWA)로 대체 표출
         st.markdown(f'''
-            <a href="{inst_url}" target="_blank" 
-               style="text-decoration:none; color:#FF701E; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
-                {inst_abbr}
+            <a href="{inst_url}" target="_blank" style="text-decoration:none; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
+                <span style="color:#FF701E;">{inst_abbr}</span> 
+                <span style="color:#000000;">x</span> 
+                <span style="color:#FF4B4B;">KYWA</span>
             </a>
         ''', unsafe_allow_html=True)
 
