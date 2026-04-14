@@ -523,7 +523,7 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
         st.warning("⚠️ 분석할 내용(글 또는 사진)을 입력해 주세요.")
     else:
         try:
-            with st.spinner(f"✨ KYWA AI가 [{selected_facility}] 시설의 데이터를 분석 중입니다...🔍"):
+            with st.spinner(f"✨ AI가 [{selected_facility}] 시설의 데이터를 분석 중입니다...🔍"):
                 # 1. 여기서 무조건 변수를 먼저 만듭니다 (중요!)
                 content = []
                 
@@ -731,7 +731,7 @@ if st.session_state.analysis_results:
 
     # --- [3단계] 전송 버튼 로직 ---
     st.write("")
-    if st.button("✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
+    if st.button(f"✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
         if sheets_service is None or drive_service is None:
             st.error("⚠️ GCP 인증에 실패하여 데이터를 전송할 수 없습니다. 관리자에게 문의하세요.")
         elif not st.session_state.get("final_data"):
