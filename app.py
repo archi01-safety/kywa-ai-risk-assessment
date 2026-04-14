@@ -794,10 +794,28 @@ if st.session_state.analysis_results:
                     st.error(f"❌ 전송 중 오류 발생: {e}")
 
 
-# --- [수정] 날짜 형식 오류를 해결한 데이터 로드 함수 ---
+# --- [수정] 기관별 설정을 반영한 동적 데이터 로드 함수 ---
 def load_dashboard_data():
-    # 구글 시트 CSV 내보내기 링크
-    sheet_url = "https://docs.google.com/spreadsheets/d/1kL18jQn5t0UX8ECpVEm3RHLQAWu7lum8_Wb-EtxkU5Q/export?format=csv&gid=413707311"
+    # 1. config.json에서 구글 API 관련 설정 가져오기
+    api_cfg = cfg.get("google_api", {})
+    spreadsheet_id = api_cfg.get("spreadsheet_id", "")
+if not spreadsheet_id:
+    st.error("스프레드시트 ID가 설정되지 않았습니다. config.json을 확인해주세요.")
+    return pd.DataFrame()
+    sheet_name = api_cfg.get("sheet_name", "시트1")
+
+    # 2. 시트 이름을 사용하여 CSV 내보내기 URL 생성
+    # gviz/tq 방식은 gid(숫자) 대신 시트 이름(텍스트)으로 특정 탭을 지정할 수 있어 더 유연합니다.
+    sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+    
+    try:
+        # 데이터 로드 (기존 로직 유지)
+        dashboard_data = pd.read_csv(sheet_url)
+        # ... 이후 전처리 로직 ...
+        return dashboard_data
+    except Exception as e:
+        st.error(f"대시보드 데이터를 불러오는 중 오류가 발생했습니다: {e}")
+        return pd.DataFrame()
     
     try:
         df = pd.read_csv(sheet_url)
