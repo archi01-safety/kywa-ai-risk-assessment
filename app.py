@@ -794,36 +794,25 @@ if st.session_state.analysis_results:
                     st.error(f"❌ 전송 중 오류 발생: {e}")
 
 
-
-
-import urllib.parse  # 상단 임포트 부분에 추가되어 있어야 합니다.
-
+# --- [수정] 기관별 설정을 반영한 동적 데이터 로드 함수 ---
 def load_dashboard_data():
+    # 1. config.json에서 구글 API 관련 설정 가져오기
     api_cfg = cfg.get("google_api", {})
-    spreadsheet_id = api_cfg.get("spreadsheet_id", "")
+    spreadsheet_id = api_cfg.get("spreadsheet_id", "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8")
     sheet_name = api_cfg.get("sheet_name", "시트1")
 
-    if not spreadsheet_id:
-        st.error("스프레드시트 ID가 설정되지 않았습니다.")
-        return pd.DataFrame()
-
-    # [핵심] 한글 시트 이름을 URL에 쓸 수 있도록 인코딩 (예: '시트1' -> '%EC%8B%9C%ED%8A%B81')
-    encoded_sheet_name = urllib.parse.quote(sheet_name)
-    
-    # 인코딩된 이름을 URL에 삽입
-    sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={encoded_sheet_name}"
+    # 2. 시트 이름을 사용하여 CSV 내보내기 URL 생성
+    # gviz/tq 방식은 gid(숫자) 대신 시트 이름(텍스트)으로 특정 탭을 지정할 수 있어 더 유연합니다.
+    sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     
     try:
-        # 데이터 로드
+        # 데이터 로드 (기존 로직 유지)
         dashboard_data = pd.read_csv(sheet_url)
+        # ... 이후 전처리 로직 ...
         return dashboard_data
     except Exception as e:
-        # 에러 메시지 상세 출력 (디버깅용)
         st.error(f"대시보드 데이터를 불러오는 중 오류가 발생했습니다: {e}")
         return pd.DataFrame()
-
-
-
     
     try:
         df = pd.read_csv(sheet_url)
