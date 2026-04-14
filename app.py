@@ -1,7 +1,12 @@
 import streamlit as st
 
 # [1] 페이지 설정 (반드시 모든 st 함수 중 가장 처음에 위치)
-st.set_page_config(page_title="KYWA AI 위험성평가 시스템", layout="wide", page_icon="🚨")
+# cfg 변수가 선언된 이후에 실행되어야 합니다.
+st.set_page_config(
+    page_title=f"{cfg['institution']['abbr']} AI 위험성평가 시스템", 
+    layout="wide", 
+    page_icon="🚨"
+)
 
 # [2] 필수 라이브러리 임포트
 import os
@@ -26,8 +31,8 @@ from googleapiclient.http import MediaIoBaseUpload
 
 
 # --- [1단계] 구글 드라이브/시트 설정 (PEM 로드 집중 수정 버전) ---
-DRIVE_FOLDER_ID = "13RYVnDB7rrqLQYzB5Wa9WdWr0CHjm_MW"
-SPREADSHEET_ID = "1kL18jQn5t0UX8ECpVEm3RHLQAWu7lum8_Wb-EtxkU5Q"
+DRIVE_FOLDER_ID = "0ANLy8-vWimQgUk9PVA"
+SPREADSHEET_ID = "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8"
 
 # --- [추가] 실제 구글 드라이브에 파일을 업로드하는 함수 ---
 def upload_to_drive(file_name, file_content, mime_type):
@@ -140,8 +145,19 @@ st.markdown("""
 os.environ['PYTHONHTTPSVERIFY'] = '0'
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# 2. 페이지 설정 및 세션 초기화
-st.set_page_config(page_title="KYWA AI 위험성평가 시스템", layout="wide", page_icon="🚨")
+# [0] 설정 파일 로드 (가장 먼저 실행되어야 합니다)
+def load_config():
+    with open('config.json', 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+cfg = load_config()
+
+# [1] 페이지 설정 (동적 타이틀 적용)
+st.set_page_config(
+    page_title=f"{cfg['institution']['abbr']} AI 위험성평가 시스템", 
+    layout="wide", 
+    page_icon="🚨"
+)
 
 if "analysis_results" not in st.session_state:
     st.session_state.analysis_results = None
@@ -167,29 +183,6 @@ try:
 except Exception as e:
     st.error(f"API 설정 오류가 발생했습니다: {e}")
     st.stop()
-
-# --- 도구 함수 (Word/Excel 생성) ---
-def create_docx(data):
-    doc = Document()
-    doc.add_heading('KYWA AI 위험성평가 결과 보고서', 0)
-    for item in data:
-        doc.add_paragraph(f"분류: {item.get('category')}")
-        doc.add_paragraph(f"장소: {item.get('location')}")
-        doc.add_paragraph(f"상황: {item.get('scenario')}")
-        doc.add_paragraph(f"등급: {item.get('grade')} (점수: {item.get('score')})")
-        doc.add_paragraph(f"대책: {item.get('solution')}")
-        doc.add_paragraph("-" * 20)
-    bio = io.BytesIO()
-    doc.save(bio)
-    return bio.getvalue()
-
-def create_excel(data):
-    df = pd.DataFrame(data)
-    bio = io.BytesIO()
-    with pd.ExcelWriter(bio, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
-    return bio.getvalue()
-
 
 
 # --- [2단계] 구글 드라이브/시트 전송 함수 추가 ---
@@ -322,11 +315,16 @@ with header_col1:
         ''', unsafe_allow_html=True)
 
 with header_col2:
-    st.markdown("""
-        <a href="/" target="_self" class="refresh-title">
-            <h1 style='margin-bottom: 0;'>🚨 KYWA AI 위험성평가 시스템</h1>
+    st.markdown(f"""
+        <a href="/" target="_self" class="refresh-title" style="text-decoration: none;">
+            <h1 style='margin-bottom: 0;'>🚨 {cfg['institution']['abbr']} AI 위험성평가 시스템</h1>
         </a>
-        <p style='color: gray; margin-top: 0;'>Korea Youth Work Agency - 스마트 안전관리 플랫폼</p>
+        <p style='color: gray; margin-top: 5px; font-size: 1.05rem;'>
+            스마트 안전관리 플랫폼 
+            <span style='font-size: 0.85rem; letter-spacing: 0.5px; margin-left: 5px;'>
+                Powered by <span style='color: #ff4b4b; font-weight: bold;'>KYWA</span>
+            </span>
+        </p>
     """, unsafe_allow_html=True)
 
 st.divider()
@@ -336,13 +334,17 @@ col1, col2 = st.columns([1, 1])
 
 with col1:
     st.markdown("### **🏢 점검 대상 정보**")
-    selected_facility = st.radio("• 시설명 선택 (필수)", ["중앙", "평창", "우주", "바이오", "해양", "미래", "생태", "본원"], horizontal=True)
     
-    dept_list = ["활동부", "협력부", "근로자대표", "청소년성장지원부", "지도인력양성부", "지도인력개발부", "청렴감사실", "기획혁신부", "인재경영부", "홍보전략부", "안전경영부", "재무회계부", "디지털정보부", "자회사", "협력업체"]
-    selected_dept = st.selectbox("• 담당 부서 선택 (필수)", dept_list)
+    # config.json의 facilities 리스트를 사용합니다.
+    시설명_list = cfg['ui_options']['facilities']
+    selected_facility = st.radio("• 시설명 선택 (필수)", 시설명_list, horizontal=True)
+    
+    # config.json의 departments 리스트를 사용합니다.
+    담당부서_list = cfg['ui_options']['departments']
+    selected_dept = st.selectbox("• 담당 부서 선택 (필수)", 담당부서_list)
     
     st.markdown("### **📝 현장 상황 설명**")
-    placeholder_text = "<예  시>\n1. 본관 2층 테라스 난간 흔들림\n2. 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
+    placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
     user_description = st.text_area("• 상황 설명 입력 (권장)", placeholder=placeholder_text, height=150)
 
 # --- [2] 사진 업로더 전용 CSS (한 번만 선언, 위치 상관없음) ---
@@ -504,7 +506,7 @@ def apply_face_blur_ai(img_file):
 
 # --- 분석 시작 버튼 부분 (핵심 로직 통합) ---
 
-if st.button("🚀 KYWA AI 위험요인 분석 시작", use_container_width=True):
+if st.button("🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", use_container_width=True):
     if not user_description.strip() and not img_file:
         st.warning("⚠️ 분석할 내용(글 또는 사진)을 입력해 주세요.")
     else:
@@ -513,9 +515,9 @@ if st.button("🚀 KYWA AI 위험요인 분석 시작", use_container_width=True
                 # 1. 여기서 무조건 변수를 먼저 만듭니다 (중요!)
                 content = []
                 
-                # 2단계: 분석 프롬프트 구성 (문구 수정 없음)
+                # 2단계: 분석 프롬프트 구성 (기관별 동적 페르소나 적용)
                 prompt = f"""
-                당신은 한국청소년활동진흥원(KYWA)의 안전관리 전문가입니다.
+                당신은 {cfg['institution']['name']}의 안전관리 전문가입니다.
                 
                 [시설 정보]
                 - 시설명: {selected_facility}
@@ -531,7 +533,7 @@ if st.button("🚀 KYWA AI 위험요인 분석 시작", use_container_width=True
 
                 [관련 근거(law) 작성 규칙 - 중요]
                 1. 법적 근거는 반드시 기술적 안전 기준이 명시된 현행 법령만 사용하십시오.
-                2. 권장 법령: 산업안전보건법, 산업안전보건기준에 관한 규칙, 시특법, 소방기본법, 전기안전관리법 등.
+                2. 권장 법령: 산업안전보건법, 산업안전보건기준에 관한 규칙, 시특법, 소방기본법, 전기안전관리법 등. 그 외 기관의 특성이 고려된 법령
                 3. 제외 법령: 청소년활동 진흥법, 일반 행정법 등 실제 안전 기술 기준이 없는 법령은 절대 금지.
                 4. 구체적인 조항(예: 제00조)을 언급할 수 있다면 최대한 구체적으로 작성하며, 항이 실제 존재하는지 검증 후 출력하십시오.
                 5. 주의 사항: 현행 법령이 아니거나 삭제된 법령 또는 없는 법령에 대해 절대 작성금지.
@@ -717,13 +719,13 @@ if st.session_state.analysis_results:
 
     # --- [3단계] 전송 버튼 로직 ---
     st.write("")
-    if st.button("✅ KYWA AI 안전센터로 데이터 최종 전송", use_container_width=True):
+    if st.button("✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
         if sheets_service is None or drive_service is None:
             st.error("⚠️ GCP 인증에 실패하여 데이터를 전송할 수 없습니다. 관리자에게 문의하세요.")
         elif not st.session_state.get("final_data"):
             st.error("⚠️ 전송할 데이터가 없습니다.")
         else:
-            with st.spinner("🚀 KYWA AI 안전센터로 데이터를 전송 중입니다..."):
+            with st.spinner("🚀 {cfg['institution']['abbr']} 안전센터로 데이터를 전송 중입니다..."):
                 try:
                     # 한국 시간 설정
                     now_kst = datetime.datetime.now() + datetime.timedelta(hours=9)
@@ -774,31 +776,6 @@ if st.session_state.analysis_results:
                 except Exception as e:
                     st.error(f"❌ 전송 중 오류 발생: {e}")
 
-
-    # --- 저장 버튼 영역 (분석 직후 바로 나타나며, 클릭 시 사라짐 방지) ---
-    st.markdown("---")
-    dl_col1, dl_col2 = st.columns(2)
-    
-    # 수정된 데이터를 실시간으로 함수에 전달
-    if st.session_state.final_data:
-        with dl_col1:
-            st.download_button(
-                label="📂 Word 저장",
-                data=create_docx(st.session_state.final_data),
-                file_name=f"KYWA_{selected_facility}.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                width="stretch",
-                key="btn_word_download" # 클릭 시 사라짐 방지를 위한 고유 키
-            )
-        with dl_col2:
-            st.download_button(
-                label="📊 Excel 저장",
-                data=create_excel(st.session_state.final_data),
-                file_name=f"KYWA_{selected_facility}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                width="stretch",
-                key="btn_excel_download" # 클릭 시 사라짐 방지를 위한 고유 키
-            )
 
 # --- [수정] 날짜 형식 오류를 해결한 데이터 로드 함수 ---
 def load_dashboard_data():
@@ -873,11 +850,24 @@ if dashboard_data is not None:
             "활동 안전": "#388E3C"       # 초록색 (일상 활동/야외)
         }
 
+
+        # 1. 20가지 안전관리 테마 색상 팔레트
+        SAFETY_PALETTE = [
+            "#B93444", "#6B5B95", "#E2725B", "#5B84B1", "#92B06A", 
+            "#D2B48C", "#2E4A62", "#5F7161", "#4F6272", "#8D5B4C",
+            "#778899", "#556B2F", "#8B4513", "#483D8B", "#2F4F4F",
+            "#BC8F8F", "#4682B4", "#9A7D0A", "#696969", "#800000"
+        ]
+
+        # 2. 동적 색상 할당 맵 생성 (시설 리스트 자동 추출 기반)
+        # config.json에서 시설 리스트를 가져오거나, 없을 경우 현재 세션의 데이터를 기반으로 자동 생성
+        facility_options = cfg.get("facilities", ["기본시설"])
+
         FACILITY_COLOR_MAP = {
-            "중앙": "#B93444", "본원": "#6B5B95", "평창": "#E2725B",
-            "바이오": "#D2B48C", "해양": "#5B84B1", "우주": "#2E4A62",
-            "미래": "#92B06A", "생태": "#5F7161"
+            facility: SAFETY_PALETTE[i % len(SAFETY_PALETTE)] 
+            for i, facility in enumerate(facility_options)
         }
+
 
 # --- 4. 그래프 시각화 영역 (3단 구성으로 변경) ---
         g_col1, g_col2, g_col3 = st.columns(3)
@@ -990,13 +980,13 @@ footer_cols = st.columns([3, 1])
 
 with footer_cols[0]:
     st.markdown("### 🔒 Data Governance & Privacy")
-    st.caption("""
-    **© 2026 한국청소년활동진흥원(KYWA) 안전경영부.** 본 시스템은 **공공기관 AI 활용 가이드라인** 및 **정보보안 업무규정** 을 엄격히 준수합니다.
+    st.caption(f"""
+    **© 2026 {cfg['institution']['name']} (Powered by KYWA).** 본 시스템은 **한국청소년활동진흥원(KYWA)**의 스마트 안전관리 기술을 바탕으로 구축되었으며, **공공기관 AI 활용 가이드라인** 및 **정보보안 업무규정**을 엄격히 준수합니다.
     
+    * **운영 주체 및 방침:** 본 플랫폼의 운영 및 데이터 관리 책임은 **{cfg['institution']['name']}**에 있으며, **{cfg['institution']['abbr']} AI 안전센터**를 통해 데이터 정합성 검토를 거칩니다. 부적절하거나 중복된 데이터는 운영 관리자에 의해 수정 또는 삭제될 수 있습니다.
     * **데이터 보안:** 입력된 모든 정보는 **API 옵트아웃(Opt-out) 설정**이 적용되어 외부 모델 학습에 활용되지 않습니다.
-    * **운영 방침:** **KYWA AI 안전센터**로 전송된 데이터는 **담당자의 데이터 정합성 검토**를 거칩니다. 
-      점검 내용이 부적절하거나 중복된 경우, 데이터 신뢰성 유지를 위해 운영 관리자에 의해 임의 수정 또는 삭제될 수 있습니다.
-    * **면책 고지:** AI 분석 정보는 위험 요인 발굴을 돕는 가이드라인입니다. 실제 위험성 평가 시에는 현장 상황을 반영한 담당 직원의 면밀한 검토를 권고합니다.
+    * **기술 지원:** **KYWA**는 공공기관 안전관리 혁신을 위해 본 AI 모델의 기술적 가이드 및 스마트 안전관리 플랫폼 모델을 제공합니다.
+    * **면책 고지:** AI 분석 정보는 위험 요인 발굴을 돕는 가이드라인입니다. 실제 위험성 평가 시에는 현장 상황을 반영한 담당 직원의 면밀한 검토가 반드시 필요합니다.
     """)
 
 with footer_cols[1]:
