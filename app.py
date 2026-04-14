@@ -218,7 +218,7 @@ def append_row_to_sheet(row_data):
     try:
         # [확인 필요] 실제 시트 탭 이름과 공백이 정확히 일치해야 합니다.
         # 만약 구글폼 연동 시트라면 보통 '설문지 응답 1' 입니다.
-        range_name = "'설문지 응답 시트1'!A1" 
+        range_name = "'시트1'!A1" 
         
         body = {'values': [row_data]}
         sheets_service.spreadsheets().values().append(
