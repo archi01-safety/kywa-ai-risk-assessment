@@ -238,7 +238,7 @@ st.markdown("""
     <style>
     /* 모든 Streamlit 버튼 스타일 수정 */
     div.stButton > button {
-        background-color: #ff4b4b !important; /* 기본 붉은색 */
+        background-color: #00A651 !important; /* 기본 붉은색 */
         color: white !important;
         border: none !important;
         padding: 0.5rem 1rem !important;
@@ -264,7 +264,7 @@ st.markdown("""
     <style>
     /* 버튼 스타일 */
     div.stButton > button {
-        background-color: #ff4b4b !important;
+        background-color: #00A651 !important;
         color: white !important;
         font-weight: bold !important;
         border-radius: 0.5rem !important;
@@ -277,7 +277,7 @@ st.markdown("""
     /* 로고 및 타이틀 스타일 */
     .logo-img { cursor: pointer; display: block; margin-top: 2px; }
     .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #FF4B4B !important; }
+    .refresh-title:hover { color: #00A651 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -321,7 +321,7 @@ with header_col1:
         # 로고 로딩 실패 시 텍스트(영문 약어)로 대체 표출
         st.markdown(f'''
             <a href="{inst_url}" target="_blank" 
-               style="text-decoration:none; color:#ff4b4b; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
+               style="text-decoration:none; color:#00A651; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
                 {inst_abbr}
             </a>
         ''', unsafe_allow_html=True)
@@ -334,7 +334,7 @@ with header_col2:
         <p style='color: gray; margin-top: 5px; font-size: 1.05rem;'>
             {cfg['institution']['name']} 스마트 안전관리 플랫폼 
             <span style='font-size: 0.85rem; letter-spacing: 0.5px; margin-left: 5px;'>
-                Powered by <span style='color: #ff4b4b; font-weight: bold;'>KYWA</span>
+                Powered by <span style='color: #00A651; font-weight: bold;'>KYWA</span>
             </span>
         </p>
     """, unsafe_allow_html=True)
@@ -384,7 +384,7 @@ st.markdown("""
             display: block !important;
             margin: 10px auto !important;
             padding: 10px 20px !important;
-            background-color: #ff4b4b !important;
+            background-color: #00A651 !important;
             color: white !important;
             border-radius: 8px !important;
             cursor: pointer !important;
