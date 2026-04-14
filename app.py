@@ -332,7 +332,7 @@ with header_col2:
             <h1 style='margin-bottom: 0;'>🚨 {cfg['institution']['abbr']} AI 위험성평가 시스템</h1>
         </a>
         <p style='color: gray; margin-top: 5px; font-size: 1.05rem;'>
-            스마트 안전관리 플랫폼 
+            {cfg['institution']['name']} 스마트 안전관리 플랫폼 
             <span style='font-size: 0.85rem; letter-spacing: 0.5px; margin-left: 5px;'>
                 Powered by <span style='color: #ff4b4b; font-weight: bold;'>KYWA</span>
             </span>
