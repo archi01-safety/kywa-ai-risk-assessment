@@ -993,7 +993,7 @@ footer_cols = st.columns([3, 1])
 with footer_cols[0]:
     st.markdown("### 🔒 Data Governance & Privacy")
     st.caption(f"""
-    **© 2026 {cfg['institution']['name']} (Powered by KYWA).** 본 시스템은 **한국청소년활동진흥원(KYWA)**의 스마트 안전관리 기술을 바탕으로 구축되었으며, **공공기관 AI 활용 가이드라인** 및 **정보보안 업무규정**을 엄격히 준수합니다.
+    **© 2026 {cfg['institution']['name']} (Powered by KYWA).** 본 시스템은 **한국청소년활동진흥원(KYWA)** 의 스마트 안전관리 기술을 바탕으로 구축되었으며, **공공기관 AI 활용 가이드라인** 및 **정보보안 업무규정**을 엄격히 준수합니다.
     
     * **운영 주체 및 방침:** 본 플랫폼의 운영 및 데이터 관리 책임은 **{cfg['institution']['name']}**에 있으며, **{cfg['institution']['abbr']} AI 안전센터**를 통해 데이터 정합성 검토를 거칩니다. 부적절하거나 중복된 데이터는 운영 관리자에 의해 수정 또는 삭제될 수 있습니다.
     * **데이터 보안:** 입력된 모든 정보는 **API 옵트아웃(Opt-out) 설정**이 적용되어 외부 모델 학습에 활용되지 않습니다.
