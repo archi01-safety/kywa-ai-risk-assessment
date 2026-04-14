@@ -796,8 +796,15 @@ if st.session_state.analysis_results:
 
 # --- [수정] 날짜 형식 오류를 해결한 데이터 로드 함수 ---
 def load_dashboard_data():
-    # 구글 시트 CSV 내보내기 링크
-    sheet_url = "https://docs.google.com/spreadsheets/d/1kL18jQn5t0UX8ECpVEm3RHLQAWu7lum8_Wb-EtxkU5Q/export?format=csv&gid=413707311"
+    # [수정] 고정 주소 대신 config.json의 ID를 사용하여 주소 생성
+    spreadsheet_id = cfg.get("google_api", {}).get("spreadsheet_id", "기본ID")
+    sheet_name = cfg.get("google_api", {}).get("sheet_name", "시트1")
+    
+    import urllib.parse
+    encoded_sheet = urllib.parse.quote(sheet_name)
+    
+    # 이 주소가 실시간으로 기관에 맞는 데이터를 불러오는 통로가 됩니다.
+    sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={encoded_sheet}"
     
     try:
         df = pd.read_csv(sheet_url)
