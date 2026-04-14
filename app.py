@@ -334,7 +334,7 @@ with header_col2:
         <p style='color: gray; margin-top: 5px; font-size: 1.05rem;'>
             {cfg['institution']['name']} 스마트 안전관리 플랫폼 
             <span style='font-size: 0.85rem; letter-spacing: 0.5px; margin-left: 5px;'>
-                Powered by <span style='color: #00A651; font-weight: bold;'>KYWA</span>
+                Powered by <span style='color: #ff4b4b; font-weight: bold;'>KYWA</span>
             </span>
         </p>
     """, unsafe_allow_html=True)
