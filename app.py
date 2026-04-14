@@ -518,7 +518,7 @@ def apply_face_blur_ai(img_file):
 
 # --- 분석 시작 버튼 부분 (핵심 로직 통합) ---
 
-if st.button("🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", use_container_width=True):
+if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", use_container_width=True):
     if not user_description.strip() and not img_file:
         st.warning("⚠️ 분석할 내용(글 또는 사진)을 입력해 주세요.")
     else:
