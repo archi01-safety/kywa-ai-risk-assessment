@@ -847,43 +847,17 @@ def load_dashboard_data():
 st.write("---")
 dashboard_data = load_dashboard_data()
 
-# 1. 데이터가 정상적으로 로드되었는지 확인
-if dashboard_data is not None and not dashboard_data.empty:
-    
-    # [핵심 수정] '타임스탬프' 컬럼을 판다스가 인식할 수 있는 날짜 형식으로 변환
+if dashboard_data is not None:
+    # 2. 날짜 필터링 (2026년 데이터만)
     if '타임스탬프' in dashboard_data.columns:
-        # 데이터가 문자열인 경우를 대비해 str 변환 후, 한국어 오전/오후를 AM/PM으로 변경
-        dashboard_data['타임스탬프'] = (
-            dashboard_data['타임스탬프']
-            .astype(str)
-            .str.replace('오전', 'AM')
-            .str.replace('오후', 'PM')
-        )
-        
-        # datetime 객체로 강제 변환 (형식이 맞지 않으면 NaT로 처리)
-        dashboard_data['타임스탬프'] = pd.to_datetime(dashboard_data['타임스탬프'], errors='coerce')
-        
-        # 날짜 변환에 성공한(NaT가 아닌) 데이터만 남기기
-        dashboard_data = dashboard_data.dropna(subset=['타임스탬프'])
-        
-        # 2. 날짜 필터링 (이제 .dt 접근자를 안전하게 사용할 수 있습니다)
         yearly_data = dashboard_data[dashboard_data['타임스탬프'].dt.year == 2026].copy()
     else:
-        # 타임스탬프 컬럼이 아예 없는 경우
         yearly_data = dashboard_data.copy()
 
-    # 3. 필터링된 결과에 따른 화면 표출
     if yearly_data.empty:
         st.warning("📅 2026년도 데이터가 아직 없습니다. 데이터를 첫 번째로 전송해 보세요!")
     else:
-        st.subheader(f"📊 {cfg['institution']['abbr']} 실시간 점검 데이터 현황 (2026년)")
-        # 이후 차트나 테이블 출력 로직...
-        # st.dataframe(yearly_data) 
-else:
-    # 데이터 로드 자체가 실패했거나 시트가 완전히 비어있는 경우
-    st.info("💡 아직 수집된 데이터가 없습니다. 위험성평가 분석을 완료하고 데이터를 전송해 주세요.")
-
-
+        st.subheader("📊 실시간 점검 데이터 현황 (2026년)")
         
         # 3. 상단 지표
         total_count = len(yearly_data)
