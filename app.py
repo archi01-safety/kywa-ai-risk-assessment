@@ -737,7 +737,7 @@ if st.session_state.analysis_results:
         elif not st.session_state.get("final_data"):
             st.error("⚠️ 전송할 데이터가 없습니다.")
         else:
-            with st.spinner("🚀 {cfg['institution']['abbr']} 안전센터로 데이터를 전송 중입니다..."):
+            with st.spinner(f"🚀 {cfg['institution']['abbr']} 안전센터로 데이터를 전송 중입니다..."):
                 try:
                     # 한국 시간 설정
                     now_kst = datetime.datetime.now() + datetime.timedelta(hours=9)
