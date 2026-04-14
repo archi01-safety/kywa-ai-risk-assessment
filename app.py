@@ -36,9 +36,14 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 
-# --- [1단계] 구글 드라이브/시트 설정 (PEM 로드 집중 수정 버전) ---
-DRIVE_FOLDER_ID = "0ANLy8-vWimQgUk9PVA"
-SPREADSHEET_ID = "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8"
+# --- [1단계] 구글 드라이브/시트 설정 (동적 로드 버전) ---
+
+# config.json에서 해당 기관의 ID를 가져오고, 없을 경우를 대비해 기본값을 설정합니다.
+DRIVE_FOLDER_ID = cfg.get("google_api", {}).get("drive_folder_id", "0ANLy8-vWimQgUk9PVA")
+SPREADSHEET_ID = cfg.get("google_api", {}).get("spreadsheet_id", "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8")
+
+# 팁: 제대로 불러왔는지 확인하고 싶다면 아래 주석을 해제하세요.
+# st.write(f"현재 접속 폴더: {DRIVE_FOLDER_ID}")
 
 # --- [추가] 실제 구글 드라이브에 파일을 업로드하는 함수 ---
 def upload_to_drive(file_name, file_content, mime_type):
