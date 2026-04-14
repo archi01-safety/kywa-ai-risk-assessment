@@ -243,7 +243,7 @@ st.markdown("""
     <style>
     /* 모든 Streamlit 버튼 스타일 수정 */
     div.stButton > button {
-        background-color: #00A651 !important; /* 기본 붉은색 */
+        background-color: #FF701E !important; /* 기본 붉은색 */
         color: white !important;
         border: none !important;
         padding: 0.5rem 1rem !important;
@@ -269,7 +269,7 @@ st.markdown("""
     <style>
     /* 버튼 스타일 */
     div.stButton > button {
-        background-color: #00A651 !important;
+        background-color: #FF701E !important;
         color: white !important;
         font-weight: bold !important;
         border-radius: 0.5rem !important;
@@ -282,7 +282,7 @@ st.markdown("""
     /* 로고 및 타이틀 스타일 */
     .logo-img { cursor: pointer; display: block; margin-top: 2px; }
     .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #00A651 !important; }
+    .refresh-title:hover { color: #FF701E !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -326,7 +326,7 @@ with header_col1:
         # 로고 로딩 실패 시 텍스트(영문 약어)로 대체 표출
         st.markdown(f'''
             <a href="{inst_url}" target="_blank" 
-               style="text-decoration:none; color:#00A651; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
+               style="text-decoration:none; color:#FF701E; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
                 {inst_abbr}
             </a>
         ''', unsafe_allow_html=True)
@@ -389,7 +389,7 @@ st.markdown("""
             display: block !important;
             margin: 10px auto !important;
             padding: 10px 20px !important;
-            background-color: #00A651 !important;
+            background-color: #FF701E !important;
             color: white !important;
             border-radius: 8px !important;
             cursor: pointer !important;
@@ -794,25 +794,10 @@ if st.session_state.analysis_results:
                     st.error(f"❌ 전송 중 오류 발생: {e}")
 
 
-# --- [수정] 기관별 설정을 반영한 동적 데이터 로드 함수 ---
+# --- [수정] 날짜 형식 오류를 해결한 데이터 로드 함수 ---
 def load_dashboard_data():
-    # 1. config.json에서 구글 API 관련 설정 가져오기
-    api_cfg = cfg.get("google_api", {})
-    spreadsheet_id = api_cfg.get("spreadsheet_id", "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8")
-    sheet_name = api_cfg.get("sheet_name", "시트1")
-
-    # 2. 시트 이름을 사용하여 CSV 내보내기 URL 생성
-    # gviz/tq 방식은 gid(숫자) 대신 시트 이름(텍스트)으로 특정 탭을 지정할 수 있어 더 유연합니다.
-    sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-    
-    try:
-        # 데이터 로드 (기존 로직 유지)
-        dashboard_data = pd.read_csv(sheet_url)
-        # ... 이후 전처리 로직 ...
-        return dashboard_data
-    except Exception as e:
-        st.error(f"대시보드 데이터를 불러오는 중 오류가 발생했습니다: {e}")
-        return pd.DataFrame()
+    # 구글 시트 CSV 내보내기 링크
+    sheet_url = "https://docs.google.com/spreadsheets/d/1kL18jQn5t0UX8ECpVEm3RHLQAWu7lum8_Wb-EtxkU5Q/export?format=csv&gid=413707311"
     
     try:
         df = pd.read_csv(sheet_url)
