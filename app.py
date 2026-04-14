@@ -36,9 +36,14 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 
-# --- [1단계] 구글 드라이브/시트 설정 (PEM 로드 집중 수정 버전) ---
-DRIVE_FOLDER_ID = "0ANLy8-vWimQgUk9PVA"
-SPREADSHEET_ID = "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8"
+# --- [1단계] 구글 드라이브/시트 설정 (동적 로드 버전) ---
+
+# config.json에서 해당 기관의 ID를 가져오고, 없을 경우를 대비해 기본값을 설정합니다.
+DRIVE_FOLDER_ID = cfg.get("google_api", {}).get("drive_folder_id", "0ANLy8-vWimQgUk9PVA")
+SPREADSHEET_ID = cfg.get("google_api", {}).get("spreadsheet_id", "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8")
+
+# 팁: 제대로 불러왔는지 확인하고 싶다면 아래 주석을 해제하세요.
+# st.write(f"현재 접속 폴더: {DRIVE_FOLDER_ID}")
 
 # --- [추가] 실제 구글 드라이브에 파일을 업로드하는 함수 ---
 def upload_to_drive(file_name, file_content, mime_type):
@@ -218,7 +223,7 @@ def append_row_to_sheet(row_data):
     try:
         # [확인 필요] 실제 시트 탭 이름과 공백이 정확히 일치해야 합니다.
         # 만약 구글폼 연동 시트라면 보통 '설문지 응답 1' 입니다.
-        range_name = "'설문지 응답 시트1'!A1" 
+        range_name = "'시트1'!A1" 
         
         body = {'values': [row_data]}
         sheets_service.spreadsheets().values().append(
@@ -238,7 +243,7 @@ st.markdown("""
     <style>
     /* 모든 Streamlit 버튼 스타일 수정 */
     div.stButton > button {
-        background-color: #00A651 !important; /* 기본 붉은색 */
+        background-color: #FF701E !important; /* 기본 붉은색 */
         color: white !important;
         border: none !important;
         padding: 0.5rem 1rem !important;
@@ -264,7 +269,7 @@ st.markdown("""
     <style>
     /* 버튼 스타일 */
     div.stButton > button {
-        background-color: #00A651 !important;
+        background-color: #FF701E !important;
         color: white !important;
         font-weight: bold !important;
         border-radius: 0.5rem !important;
@@ -277,7 +282,7 @@ st.markdown("""
     /* 로고 및 타이틀 스타일 */
     .logo-img { cursor: pointer; display: block; margin-top: 2px; }
     .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #00A651 !important; }
+    .refresh-title:hover { color: #FF701E !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -321,7 +326,7 @@ with header_col1:
         # 로고 로딩 실패 시 텍스트(영문 약어)로 대체 표출
         st.markdown(f'''
             <a href="{inst_url}" target="_blank" 
-               style="text-decoration:none; color:#00A651; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
+               style="text-decoration:none; color:#FF701E; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
                 {inst_abbr}
             </a>
         ''', unsafe_allow_html=True)
@@ -384,7 +389,7 @@ st.markdown("""
             display: block !important;
             margin: 10px auto !important;
             padding: 10px 20px !important;
-            background-color: #00A651 !important;
+            background-color: #FF701E !important;
             color: white !important;
             border-radius: 8px !important;
             cursor: pointer !important;
@@ -523,7 +528,7 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
         st.warning("⚠️ 분석할 내용(글 또는 사진)을 입력해 주세요.")
     else:
         try:
-            with st.spinner(f"✨ KYWA AI가 [{selected_facility}] 시설의 데이터를 분석 중입니다...🔍"):
+            with st.spinner(f"✨ AI가 [{selected_facility}] 시설의 데이터를 분석 중입니다...🔍"):
                 # 1. 여기서 무조건 변수를 먼저 만듭니다 (중요!)
                 content = []
                 
@@ -731,13 +736,13 @@ if st.session_state.analysis_results:
 
     # --- [3단계] 전송 버튼 로직 ---
     st.write("")
-    if st.button("✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
+    if st.button(f"✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
         if sheets_service is None or drive_service is None:
             st.error("⚠️ GCP 인증에 실패하여 데이터를 전송할 수 없습니다. 관리자에게 문의하세요.")
         elif not st.session_state.get("final_data"):
             st.error("⚠️ 전송할 데이터가 없습니다.")
         else:
-            with st.spinner("🚀 {cfg['institution']['abbr']} 안전센터로 데이터를 전송 중입니다..."):
+            with st.spinner(f"🚀 {cfg['institution']['abbr']} 안전센터로 데이터를 전송 중입니다..."):
                 try:
                     # 한국 시간 설정
                     now_kst = datetime.datetime.now() + datetime.timedelta(hours=9)
@@ -791,8 +796,15 @@ if st.session_state.analysis_results:
 
 # --- [수정] 날짜 형식 오류를 해결한 데이터 로드 함수 ---
 def load_dashboard_data():
-    # 구글 시트 CSV 내보내기 링크
-    sheet_url = "https://docs.google.com/spreadsheets/d/1kL18jQn5t0UX8ECpVEm3RHLQAWu7lum8_Wb-EtxkU5Q/export?format=csv&gid=413707311"
+    # [수정] 고정 주소 대신 config.json의 ID를 사용하여 주소 생성
+    spreadsheet_id = cfg.get("google_api", {}).get("spreadsheet_id", "기본ID")
+    sheet_name = cfg.get("google_api", {}).get("sheet_name", "시트1")
+    
+    import urllib.parse
+    encoded_sheet = urllib.parse.quote(sheet_name)
+    
+    # 이 주소가 실시간으로 기관에 맞는 데이터를 불러오는 통로가 됩니다.
+    sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={encoded_sheet}"
     
     try:
         df = pd.read_csv(sheet_url)
@@ -881,48 +893,11 @@ if dashboard_data is not None:
         }
 
 
-# --- 4. 그래프 시각화 영역 (3단 구성으로 변경) ---
-        g_col1, g_col2, g_col3 = st.columns(3)
+# --- 4. 그래프 시각화 영역 (2단 구성으로 변경) ---
+        g_col1, g_col2 = st.columns(2)
 
-        # [1단] 장소 현황 (D컬럼 - Index 3)
+        # [1단] 유해위험요인 현황 (E컬럼 - Index 4)
         with g_col1:
-            if len(yearly_data.columns) >= 4:
-                target_col_loc = yearly_data.columns[3] 
-                st.write(f"**📍 {target_col_loc} 현황**")
-                if not yearly_data[target_col_loc].dropna().empty:
-                    yearly_data[target_col_loc] = yearly_data[target_col_loc].astype(str).str.strip()
-                    
-                    fig_loc = px.pie(
-                        yearly_data, names=target_col_loc, hole=0.3,
-                        color_discrete_sequence=px.colors.qualitative.Pastel
-                    )
-                    fig_loc.update_traces(
-                        textinfo='percent+value', 
-                        texttemplate='%{percent:.0%}<br>(%{value}건)',
-                        insidetextorientation='horizontal',
-                        textfont_size=11
-                    )
-                    # 🔴 [수정됨] fig_pie -> fig_loc 으로 변경
-                    fig_loc.update_layout(
-                        margin=dict(t=30, b=80, l=0, r=0), 
-                        height=450, 
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",      
-                            yanchor="top",        
-                            y=-0.1,               
-                            xanchor="center",     
-                            x=0.5,
-                            font=dict(size=10),   
-                            itemwidth=30          
-                        ),
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        dragmode=False
-                    )
-                    st.plotly_chart(fig_loc, use_container_width=True, config={'displayModeBar': False})
-
-        # [2단] 유해위험요인 현황 (E컬럼 - Index 4)
-        with g_col2:
             if len(yearly_data.columns) >= 5:
                 target_col_cat = yearly_data.columns[4] 
                 st.write(f"**⚠️ {target_col_cat} 현황**")
@@ -955,10 +930,10 @@ if dashboard_data is not None:
                         paper_bgcolor='rgba(0,0,0,0)',
                         dragmode=False
                     )
-                    st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
+                    st.plotly_chart(fig_pie, width="stretch", config={'displayModeBar': False})
 
-        # [3단] 시설별 점검 건수
-        with g_col3:
+        # [2단] 시설별 점검 건수
+        with g_col2:
             target_col_fac = "시설명" 
             if target_col_fac in yearly_data.columns:
                 st.write(f"**🏢 {target_col_fac}별 건수**")
@@ -976,14 +951,14 @@ if dashboard_data is not None:
                     textfont_size=11
                 )
                 fig_bar.update_layout(
-                    margin=dict(t=35, b=0, l=0, r=0), height=450, # 높이를 1, 2단과 동일하게 450으로 맞춤 
+                    margin=dict(t=35, b=0, l=0, r=0), height=450, # 높이를 1단과 동일하게 450으로 맞춤 
                     showlegend=False,
                     xaxis_title=None, yaxis_title=None,
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
                     dragmode=False 
                 )
-                st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+                st.plotly_chart(fig_bar, width="stretch", config={'displayModeBar': False})
 
 # --- 푸터(Footer) 섹션 ---
 st.write("") # 간격 확보
