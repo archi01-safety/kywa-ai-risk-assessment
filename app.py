@@ -20,8 +20,8 @@ cfg = load_config()
 
 # --- [1] 페이지 설정 ---
 st.set_page_config(
-    page_title=f"{cfg['institution']['abbr']} AI 위험성평가 시스템", 
-    layout="wide", 
+    page_title=f"{cfg['institution']['abbr']} {cfg['institution']['app_title']}",
+    layout="wide",
     page_icon="🚨"
 )
 
@@ -160,7 +160,7 @@ try:
         
         # 모델 이름 정의 (2026년 표준인 gemini-2.0-flash 권장, gemini-flash-latest 사용중임)
         # 만약 기존 모델을 유지하고 싶다면 'gemini-1.5-flash' 등을 입력하세요.
-        model_name = MODEL_ID 
+        model_name = "model=MODEL_ID" 
         
     else:
         st.error("Secrets에 'GEMINI_API_KEY'가 설정되지 않았습니다.")
@@ -168,6 +168,29 @@ try:
 except Exception as e:
     st.error(f"API 설정 오류가 발생했습니다: {e}")
     st.stop()
+
+# --- 도구 함수 (Word/Excel 생성) ---
+def create_docx(data):
+    doc = Document()
+    doc.add_heading('KYWA AI 위험성평가 결과 보고서', 0)
+    for item in data:
+        doc.add_paragraph(f"분류: {item.get('category')}")
+        doc.add_paragraph(f"장소: {item.get('location')}")
+        doc.add_paragraph(f"상황: {item.get('scenario')}")
+        doc.add_paragraph(f"등급: {item.get('grade')} (점수: {item.get('score')})")
+        doc.add_paragraph(f"대책: {item.get('solution')}")
+        doc.add_paragraph("-" * 20)
+    bio = io.BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
+
+def create_excel(data):
+    df = pd.DataFrame(data)
+    bio = io.BytesIO()
+    with pd.ExcelWriter(bio, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    return bio.getvalue()
+
 
 
 # --- [2단계] 구글 드라이브/시트 전송 함수 추가 ---
@@ -417,7 +440,7 @@ def apply_face_blur_ai(img_file):
         """
         
         response = client.models.generate_content(
-            model=MODEL_ID,
+            model=model=MODEL_ID,
             contents=[prompt, pil_img],
             config=genai.types.GenerateContentConfig(
                 response_mime_type="application/json"
@@ -585,7 +608,7 @@ if st.button("🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", 
                     try:
                         # 최신 client.models.generate_content 방식 적용
                         response = client.models.generate_content(
-                            model=MODEL_ID,
+                            model=model=MODEL_ID,
                             contents=content,
                             config={
                                 "response_mime_type": "application/json",
@@ -612,7 +635,7 @@ if st.button("🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", 
 
                 # 3단계: Gemini API 호출 (최신 라이브러리 방식)
                 response = client.models.generate_content(
-                    model=MODEL_ID,
+                    model=model=MODEL_ID,
                     contents=content, # 이제 content가 프롬프트와 사진을 모두 포함합니다.
                     config={
                         "response_mime_type": "application/json",
