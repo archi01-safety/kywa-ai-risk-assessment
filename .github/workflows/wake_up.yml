@@ -40,7 +40,7 @@ jobs:
                   browser = p.chromium.launch()
                   page = browser.new_page()
                   
-                  url = 'https://kywa-safety-check.streamlit.app/'
+                  url = 'https://fowi-safety.streamlit.app/'
                   print(f'🔗 {url} 접속 시도 중...')
                   
                   page.goto(url)
