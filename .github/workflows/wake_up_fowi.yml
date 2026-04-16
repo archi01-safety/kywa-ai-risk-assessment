@@ -1,4 +1,4 @@
-name: wake_up_fowi.yml
+name: wake_up_fowi
 
 on:
   schedule:
