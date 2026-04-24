@@ -17,8 +17,8 @@
     "sheet_name": "시트1"
   },
   "ui_options": {
-    "facilities": ["중앙", "평창", "우주", "바이오", "해양", "미래", "생태", "본원"],
-    "departments": ["활동부", "협력부", "근로자대표", "청렴감사실", "기획혁신부", "인재경영부", "홍보전략부", "안전경영부", "재무회계부", "디지털정보부", "자회사"]
+    "facilities": ["핵물질가공시설(본사)", "튜브플랜트(TSA/NSA)"],
+    "departments": ["안전환경부", "튜브안전환경부"]
   },
   "ai_settings": {
     "model_name": "gemini-flash-latest",
