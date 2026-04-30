@@ -612,7 +612,7 @@ if st.button("🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", 
                     try:
                         # 최신 client.models.generate_content 방식 적용
                         response = client.models.generate_content(
-                            model=model=MODEL_ID,
+                            model=MODEL_ID,
                             contents=content,
                             config={
                                 "response_mime_type": "application/json",
@@ -639,7 +639,7 @@ if st.button("🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", 
 
                 # 3단계: Gemini API 호출 (최신 라이브러리 방식)
                 response = client.models.generate_content(
-                    model=model=MODEL_ID,
+                    model=MODEL_ID,
                     contents=content, # 이제 content가 프롬프트와 사진을 모두 포함합니다.
                     config={
                         "response_mime_type": "application/json",
