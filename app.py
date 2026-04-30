@@ -1,49 +1,34 @@
 import streamlit as st
-import json  # [2]번에 있던 json 임포트를 위로 올림
-
-# --- [0] 설정 파일 로드 (가장 먼저 실행) ---
-def load_config():
-    with open('config.json', 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-cfg = load_config()  # cfg 변수를 먼저 만들어야 아래에서 쓸 수 있습니다.
-
-# [1] 페이지 설정 (이제 cfg를 인식할 수 있습니다)
-st.set_page_config(
-    page_title=f"{cfg['institution']['abbr']} AI 위험성평가 시스템", 
-    layout="wide", 
-    page_icon="🚨"
-)
-
-# [2] 나머지 필수 라이브러리 임포트 (기존 내용 유지)
-import os
-import ssl
-import requests
-import io
-import datetime
-import base64
-import codecs
+import os, io, json, base64, datetime, requests, ssl, codecs
 import pandas as pd
 import numpy as np
 import cv2
 import plotly.express as px
-from PIL import Image
+from PIL import Image, ImageFilter
 from docx import Document
-import google.genai as genai  
-from PIL import Image, ImageFilter 
+import google.genai as genai
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
+# --- [0] 설정 파일 로드 ---
+def load_config():
+    with open('config.json', 'r', encoding='utf-8') as f:
+        return json.load(f)
 
-# --- [1단계] 구글 드라이브/시트 설정 (동적 로드 버전) ---
+cfg = load_config()
 
-# config.json에서 해당 기관의 ID를 가져오고, 없을 경우를 대비해 기본값을 설정합니다.
-DRIVE_FOLDER_ID = cfg.get("google_api", {}).get("drive_folder_id", "0ANLy8-vWimQgUk9PVA")
-SPREADSHEET_ID = cfg.get("google_api", {}).get("spreadsheet_id", "1AB7DBK9HsFGFwcDZ88ifQfR9Mvr500PM8ozh27spzg8")
+# --- [1] 페이지 설정 ---
+st.set_page_config(
+    page_title=f"{cfg['institution']['abbr']} {cfg['institution']['app_title']}",
+    layout="wide",
+    page_icon="🚨"
+)
 
-# 팁: 제대로 불러왔는지 확인하고 싶다면 아래 주석을 해제하세요.
-# st.write(f"현재 접속 폴더: {DRIVE_FOLDER_ID}")
+# --- [2] 변수 및 구글 ID (동적 로드) ---
+DRIVE_FOLDER_ID = cfg['google_api']['drive_folder_id']
+SPREADSHEET_ID = cfg['google_api']['spreadsheet_id']
+MODEL_ID = "gemini-flash-latest"
 
 # --- [추가] 실제 구글 드라이브에 파일을 업로드하는 함수 ---
 def upload_to_drive(file_name, file_content, mime_type):
@@ -156,19 +141,8 @@ st.markdown("""
 os.environ['PYTHONHTTPSVERIFY'] = '0'
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# [0] 설정 파일 로드 (가장 먼저 실행되어야 합니다)
-def load_config():
-    with open('config.json', 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-cfg = load_config()
-
-# [1] 페이지 설정 (동적 타이틀 적용)
-st.set_page_config(
-    page_title=f"{cfg['institution']['abbr']} AI 위험성평가 시스템", 
-    layout="wide", 
-    page_icon="🚨"
-)
+# 2. 페이지 설정 및 세션 초기화
+st.set_page_config(page_title="KYWA AI 위험성평가 시스템", layout="wide", page_icon="🚨")
 
 if "analysis_results" not in st.session_state:
     st.session_state.analysis_results = None
@@ -186,7 +160,7 @@ try:
         
         # 모델 이름 정의 (2026년 표준인 gemini-2.0-flash 권장, gemini-flash-latest 사용중임)
         # 만약 기존 모델을 유지하고 싶다면 'gemini-1.5-flash' 등을 입력하세요.
-        model_name = "gemini-flash-latest" 
+        model_name = "model=MODEL_ID" 
         
     else:
         st.error("Secrets에 'GEMINI_API_KEY'가 설정되지 않았습니다.")
@@ -194,6 +168,29 @@ try:
 except Exception as e:
     st.error(f"API 설정 오류가 발생했습니다: {e}")
     st.stop()
+
+# --- 도구 함수 (Word/Excel 생성) ---
+def create_docx(data):
+    doc = Document()
+    doc.add_heading('KYWA AI 위험성평가 결과 보고서', 0)
+    for item in data:
+        doc.add_paragraph(f"분류: {item.get('category')}")
+        doc.add_paragraph(f"장소: {item.get('location')}")
+        doc.add_paragraph(f"상황: {item.get('scenario')}")
+        doc.add_paragraph(f"등급: {item.get('grade')} (점수: {item.get('score')})")
+        doc.add_paragraph(f"대책: {item.get('solution')}")
+        doc.add_paragraph("-" * 20)
+    bio = io.BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
+
+def create_excel(data):
+    df = pd.DataFrame(data)
+    bio = io.BytesIO()
+    with pd.ExcelWriter(bio, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    return bio.getvalue()
+
 
 
 # --- [2단계] 구글 드라이브/시트 전송 함수 추가 ---
@@ -223,7 +220,7 @@ def append_row_to_sheet(row_data):
     try:
         # [확인 필요] 실제 시트 탭 이름과 공백이 정확히 일치해야 합니다.
         # 만약 구글폼 연동 시트라면 보통 '설문지 응답 1' 입니다.
-        range_name = "'시트1'!A1" 
+        range_name = "'설문지 응답 시트1'!A1" 
         
         body = {'values': [row_data]}
         sheets_service.spreadsheets().values().append(
@@ -243,7 +240,7 @@ st.markdown("""
     <style>
     /* 모든 Streamlit 버튼 스타일 수정 */
     div.stButton > button {
-        background-color: #00A651 !important; /* 기본 붉은색 */
+        background-color: #ff4b4b !important; /* 기본 붉은색 */
         color: white !important;
         border: none !important;
         padding: 0.5rem 1rem !important;
@@ -269,7 +266,7 @@ st.markdown("""
     <style>
     /* 버튼 스타일 */
     div.stButton > button {
-        background-color: #00A651 !important;
+        background-color: #ff4b4b !important;
         color: white !important;
         font-weight: bold !important;
         border-radius: 0.5rem !important;
@@ -282,7 +279,7 @@ st.markdown("""
     /* 로고 및 타이틀 스타일 */
     .logo-img { cursor: pointer; display: block; margin-top: 2px; }
     .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #00A651 !important; }
+    .refresh-title:hover { color: #FF4B4B !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -306,48 +303,34 @@ except Exception as e:
     # 서버 로그에만 에러를 남기고 앱은 계속 실행됨
     print(f"Logo loading error: {e}")
 
-header_col1, header_col2 = st.columns([1, 4])
+# --- [3] 동적 헤더: 로고 및 타이틀 (교체 구간 시작) ---
+h_col1, h_col2 = st.columns([1, 4])
 
-with header_col1:
-    # 1. config.json의 구조에 맞춰 변수 할당
-    # 'website_url'과 'abbr'을 동적으로 가져옵니다.
-    inst_url = cfg['institution'].get('website_url', 'https://www.kywa.or.kr')
-    inst_abbr = cfg['institution'].get('abbr', 'KYWA')
-
-    # 2. 로고 이미지 표출 로직
-    if local_logo_url:
-        # 로고 클릭 시 해당 기관의 홈페이지로 이동
+with h_col1:
+    # config.json의 경로를 사용하여 로고를 불러옵니다.
+    try:
+        inst_logo_base64 = base64.b64encode(open(cfg['institution']['logo_path'], "rb").read()).decode()
         st.markdown(f'''
-            <a href="{inst_url}" target="_blank">
-                <img src="{local_logo_url}" width="300" class="logo-img">
+            <a href="{cfg['institution']['website_url']}" target="_blank">
+                <img src="data:image/png;base64,{inst_logo_base64}" width="250" class="logo-img">
             </a>
         ''', unsafe_allow_html=True)
-    else:
-        # 로고 로딩 실패 시 텍스트(영문 약어)로 대체 표출
-        st.markdown(f'''
-            <a href="{inst_url}" target="_blank" 
-               style="text-decoration:none; color:#00A651; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
-                {inst_abbr}
-            </a>
-        ''', unsafe_allow_html=True)
+    except Exception:
+        # 로고 파일이 없을 경우 텍스트로 대체
+        st.markdown(f"### {cfg['institution']['abbr']}")
 
-with header_col2:
+with h_col2:
     st.markdown(f"""
-        <a href="/" target="_self" class="refresh-title" style="text-decoration: none;">
-            <h1 style='margin-bottom: 0;'>🚨 {cfg['institution']['abbr']} AI 위험성평가 시스템</h1>
+        <a href="/" target="_self" style="text-decoration:none;">
+            <h1 style='margin-bottom: 0;'>🚨 {cfg['institution']['name']} {cfg['institution']['app_title']}</h1>
         </a>
-        <p style='color: gray; margin-top: 5px; font-size: 1.05rem;'>
-            {cfg['institution']['name']} 스마트 안전관리 플랫폼 
-            <span style='font-size: 0.85rem; letter-spacing: 0.5px; margin-left: 5px;'>
-                Powered by <span style='color: #ff4b4b; font-weight: bold;'>KYWA</span>
-            </span>
-        </p>
+        <p style='color: gray; margin-top: 0;'>{cfg['institution']['app_subtitle']}</p>
     """, unsafe_allow_html=True)
 
 st.divider()
 
-# --- [1] UI 레이아웃 설정 (페이지 상단 어딘가에 이미 있을 것입니다) ---
-col1, col2 = st.columns([1, 1]) 
+# --- [4] 입력 섹션 (시설명 및 부서명 동적 로드) ---
+col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("### **🏢 점검 대상 정보**")
@@ -361,10 +344,16 @@ with col1:
     selected_dept = st.selectbox("• 담당 부서 선택 (필수)", 담당부서_list)
     
     st.markdown("### **📝 현장 상황 설명**")
-    placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
+    placeholder_text = "<예 시>\n1. ㅇㅇ시설물 파손 및 노후화\n2. 통로 적치물로 인한 전도 위험\n(자세히 작성할수록 정확한 결과가 나옵니다.)"
     user_description = st.text_area("• 상황 설명 입력 (권장)", placeholder=placeholder_text, height=150)
 
-# --- [2] 사진 업로더 전용 CSS (한 번만 선언, 위치 상관없음) ---
+with col2:
+    # 이 아래부터는 기존의 [📸 사진 기록 방식] 로직(source_option 등)을 그대로 유지하시면 됩니다.
+    st.markdown("### **📸 사진 기록 방식**")
+# --- (교체 구간 끝) ---
+
+       
+# 1. 업로더 한글화 CSS (디자인 적용)
 st.markdown("""
     <style>
         /* 원래 있던 영어 텍스트 숨기기 */
@@ -389,7 +378,7 @@ st.markdown("""
             display: block !important;
             margin: 10px auto !important;
             padding: 10px 20px !important;
-            background-color: #00A651 !important;
+            background-color: #ff4b4b !important;
             color: white !important;
             border-radius: 8px !important;
             cursor: pointer !important;
@@ -409,45 +398,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [3] 오른쪽 컬럼(col2) 내용 구성 ---
-with col2:
-    st.markdown("### **📸 사진 기록 방식**")
-    
-    # 안내 문구
-    st.markdown("""
-        • **사진 방식 선택** <div style="font-size: 0.85rem; color: #808080; line-height: 1.5; margin-top: 5px;">
-            🚫 얼굴(정면)을 업로드 하지 않도록 주의<br>
-            🚫 개인정보 및 주요자료가 포함되지 않도록 주의
-        </div>
-        """, unsafe_allow_html=True)
+# 2. 통합된 업로더 (변수명을 img_file로 통일하여 분석 버튼과 연결)
+img_file = st.file_uploader(
+    "사진 업로드 전용", 
+    type=['png', 'jpg', 'jpeg'], 
+    label_visibility="collapsed",
+    key="safe_upload" # 분석 버튼 로직에서 사용하는 key와 맞춰주는 것이 좋습니다.
+)
 
-    # 변수 정의 및 라디오 버튼
-    source_option = st.radio(
-        label="사진 방식 선택 레이블(숨김)", 
-        options=("📸 사진", "🚫 없음"), 
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+# 3. 사진 업로드 시 미리보기 및 안내 문구 (요청하신 우측 컬럼 배치)
+if img_file:
+    col_preview, col_info = st.columns([1, 1.5]) # 왼쪽 미리보기, 오른쪽 문구
+    with col_preview:
+        st.image(img_file, caption="업로드된 원본 사진", width=300)
+    with col_info:
+        st.write("") # 상단 여백
+        st.success("✅ 사진이 성공적으로 등록되었습니다.")
+        st.info("💡 아래 '분석 시작' 버튼을 누르면 AI가 얼굴을 비식별화 후 분석을 시작합니다.")
 
-    img_file = None # 초기화
-
-    # 조건문 실행: 반드시 with col2 안에 들여쓰기가 되어야 합니다.
-    if "📸" in source_option:
-        st.info("📸 아래 박스를 클릭하면 [사진촬영] 또는 [사진업로드] 선택이 가능합니다.")
-        
-        # 통합된 업로더 (이 부분이 col2 안으로 들어왔습니다)
-        img_file = st.file_uploader(
-            "사진 업로드 전용", 
-            type=['png', 'jpg', 'jpeg'], 
-            label_visibility="collapsed",
-            key="safe_upload"
-        )
-
-        # 사진 업로드 시 미리보기 및 안내 (col2 내부에서 다시 컬럼 분할 가능)
-        if img_file:
-            st.image(img_file, caption="업로드된 원본 사진", use_container_width=True)
-            st.success("✅ 사진이 성공적으로 등록되었습니다.")
-            st.info("💡 아래 '분석 시작' 버튼을 누르면 AI가 비식별화 후 분석을 시작합니다.")
 def apply_face_blur_ai(img_file):
     """
     Gemini AI로 얼굴 좌표를 정밀 탐지하고 OpenCV로 블러링합니다.
@@ -472,7 +440,7 @@ def apply_face_blur_ai(img_file):
         """
         
         response = client.models.generate_content(
-            model=model_name,
+            model=MODEL_ID,
             contents=[prompt, pil_img],
             config=genai.types.GenerateContentConfig(
                 response_mime_type="application/json"
@@ -523,18 +491,18 @@ def apply_face_blur_ai(img_file):
 
 # --- 분석 시작 버튼 부분 (핵심 로직 통합) ---
 
-if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", use_container_width=True):
+if st.button("🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작", use_container_width=True):
     if not user_description.strip() and not img_file:
         st.warning("⚠️ 분석할 내용(글 또는 사진)을 입력해 주세요.")
     else:
         try:
-            with st.spinner(f"✨ AI가 [{selected_facility}] 시설의 데이터를 분석 중입니다...🔍"):
+            with st.spinner(f"✨ KYWA AI가 [{selected_facility}] 시설의 데이터를 분석 중입니다...🔍"):
                 # 1. 여기서 무조건 변수를 먼저 만듭니다 (중요!)
                 content = []
                 
-                # 2단계: 분석 프롬프트 구성 (기관별 동적 페르소나 적용)
+                # 2단계: 분석 프롬프트 구성 (문구 수정 없음)
                 prompt = f"""
-                당신은 {cfg['institution']['name']}의 안전관리 전문가입니다.
+                {cfg['ai_settings']['persona']}
                 
                 [시설 정보]
                 - 시설명: {selected_facility}
@@ -550,7 +518,7 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
 
                 [관련 근거(law) 작성 규칙 - 중요]
                 1. 법적 근거는 반드시 기술적 안전 기준이 명시된 현행 법령만 사용하십시오.
-                2. 권장 법령: 산업안전보건법, 산업안전보건기준에 관한 규칙, 시특법, 소방기본법, 전기안전관리법 등. 그 외 기관의 특성이 고려된 법령
+                2. 권장 법령: 산업안전보건법, 산업안전보건기준에 관한 규칙, 시특법, 소방기본법, 전기안전관리법 등.
                 3. 제외 법령: 청소년활동 진흥법, 일반 행정법 등 실제 안전 기술 기준이 없는 법령은 절대 금지.
                 4. 구체적인 조항(예: 제00조)을 언급할 수 있다면 최대한 구체적으로 작성하며, 항이 실제 존재하는지 검증 후 출력하십시오.
                 5. 주의 사항: 현행 법령이 아니거나 삭제된 법령 또는 없는 법령에 대해 절대 작성금지.
@@ -644,7 +612,7 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
                     try:
                         # 최신 client.models.generate_content 방식 적용
                         response = client.models.generate_content(
-                            model=model_name,
+                            model=MODEL_ID,
                             contents=content,
                             config={
                                 "response_mime_type": "application/json",
@@ -671,7 +639,7 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
 
                 # 3단계: Gemini API 호출 (최신 라이브러리 방식)
                 response = client.models.generate_content(
-                    model=model_name,
+                    model=MODEL_ID,
                     contents=content, # 이제 content가 프롬프트와 사진을 모두 포함합니다.
                     config={
                         "response_mime_type": "application/json",
@@ -740,13 +708,13 @@ if st.session_state.analysis_results:
 
     # --- [3단계] 전송 버튼 로직 ---
     st.write("")
-    if st.button(f"✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
+    if st.button("✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
         if sheets_service is None or drive_service is None:
             st.error("⚠️ GCP 인증에 실패하여 데이터를 전송할 수 없습니다. 관리자에게 문의하세요.")
         elif not st.session_state.get("final_data"):
             st.error("⚠️ 전송할 데이터가 없습니다.")
         else:
-            with st.spinner(f"🚀 {cfg['institution']['abbr']} 안전센터로 데이터를 전송 중입니다..."):
+            with st.spinner("🚀 KYWA AI 안전센터로 데이터를 전송 중입니다..."):
                 try:
                     # 한국 시간 설정
                     now_kst = datetime.datetime.now() + datetime.timedelta(hours=9)
@@ -798,17 +766,35 @@ if st.session_state.analysis_results:
                     st.error(f"❌ 전송 중 오류 발생: {e}")
 
 
+    # --- 저장 버튼 영역 (분석 직후 바로 나타나며, 클릭 시 사라짐 방지) ---
+    st.markdown("---")
+    dl_col1, dl_col2 = st.columns(2)
+    
+    # 수정된 데이터를 실시간으로 함수에 전달
+    if st.session_state.final_data:
+        with dl_col1:
+            st.download_button(
+                label="📂 Word 저장",
+                data=create_docx(st.session_state.final_data),
+                file_name=f"KYWA_{selected_facility}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                width="stretch",
+                key="btn_word_download" # 클릭 시 사라짐 방지를 위한 고유 키
+            )
+        with dl_col2:
+            st.download_button(
+                label="📊 Excel 저장",
+                data=create_excel(st.session_state.final_data),
+                file_name=f"KYWA_{selected_facility}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                width="stretch",
+                key="btn_excel_download" # 클릭 시 사라짐 방지를 위한 고유 키
+            )
+
 # --- [수정] 날짜 형식 오류를 해결한 데이터 로드 함수 ---
 def load_dashboard_data():
-    # [수정] 고정 주소 대신 config.json의 ID를 사용하여 주소 생성
-    spreadsheet_id = cfg.get("google_api", {}).get("spreadsheet_id", "기본ID")
-    sheet_name = cfg.get("google_api", {}).get("sheet_name", "시트1")
-    
-    import urllib.parse
-    encoded_sheet = urllib.parse.quote(sheet_name)
-    
-    # 이 주소가 실시간으로 기관에 맞는 데이터를 불러오는 통로가 됩니다.
-    sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={encoded_sheet}"
+    # config.json에 정의된 SPREADSHEET_ID를 동적으로 불러옴 (첫 번째 시트 기준)
+    sheet_url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv"
     
     try:
         df = pd.read_csv(sheet_url)
@@ -878,30 +864,54 @@ if dashboard_data is not None:
             "활동 안전": "#388E3C"       # 초록색 (일상 활동/야외)
         }
 
-
-        # 1. 20가지 안전관리 테마 색상 팔레트
-        SAFETY_PALETTE = [
-            "#B93444", "#6B5B95", "#E2725B", "#5B84B1", "#92B06A", 
-            "#D2B48C", "#2E4A62", "#5F7161", "#4F6272", "#8D5B4C",
-            "#778899", "#556B2F", "#8B4513", "#483D8B", "#2F4F4F",
-            "#BC8F8F", "#4682B4", "#9A7D0A", "#696969", "#800000"
-        ]
-
-        # 2. 동적 색상 할당 맵 생성 (시설 리스트 자동 추출 기반)
-        # config.json에서 시설 리스트를 가져오거나, 없을 경우 현재 세션의 데이터를 기반으로 자동 생성
-        facility_options = cfg.get("facilities", ["기본시설"])
-
         FACILITY_COLOR_MAP = {
-            facility: SAFETY_PALETTE[i % len(SAFETY_PALETTE)] 
-            for i, facility in enumerate(facility_options)
+            "중앙": "#B93444", "본원": "#6B5B95", "평창": "#E2725B",
+            "바이오": "#D2B48C", "해양": "#5B84B1", "우주": "#2E4A62",
+            "미래": "#92B06A", "생태": "#5F7161"
         }
 
+# --- 4. 그래프 시각화 영역 (3단 구성으로 변경) ---
+        g_col1, g_col2, g_col3 = st.columns(3)
 
-# --- 4. 그래프 시각화 영역 (2단 구성으로 변경) ---
-        g_col1, g_col2 = st.columns(2)
-
-        # [1단] 유해위험요인 현황 (E컬럼 - Index 4)
+        # [1단] 장소 현황 (D컬럼 - Index 3)
         with g_col1:
+            if len(yearly_data.columns) >= 4:
+                target_col_loc = yearly_data.columns[3] 
+                st.write(f"**📍 {target_col_loc} 현황**")
+                if not yearly_data[target_col_loc].dropna().empty:
+                    yearly_data[target_col_loc] = yearly_data[target_col_loc].astype(str).str.strip()
+                    
+                    fig_loc = px.pie(
+                        yearly_data, names=target_col_loc, hole=0.3,
+                        color_discrete_sequence=px.colors.qualitative.Pastel
+                    )
+                    fig_loc.update_traces(
+                        textinfo='percent+value', 
+                        texttemplate='%{percent:.0%}<br>(%{value}건)',
+                        insidetextorientation='horizontal',
+                        textfont_size=11
+                    )
+                    # 🔴 [수정됨] fig_pie -> fig_loc 으로 변경
+                    fig_loc.update_layout(
+                        margin=dict(t=30, b=80, l=0, r=0), 
+                        height=450, 
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",      
+                            yanchor="top",        
+                            y=-0.1,               
+                            xanchor="center",     
+                            x=0.5,
+                            font=dict(size=10),   
+                            itemwidth=30          
+                        ),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        dragmode=False
+                    )
+                    st.plotly_chart(fig_loc, use_container_width=True, config={'displayModeBar': False})
+
+        # [2단] 유해위험요인 현황 (E컬럼 - Index 4)
+        with g_col2:
             if len(yearly_data.columns) >= 5:
                 target_col_cat = yearly_data.columns[4] 
                 st.write(f"**⚠️ {target_col_cat} 현황**")
@@ -934,10 +944,10 @@ if dashboard_data is not None:
                         paper_bgcolor='rgba(0,0,0,0)',
                         dragmode=False
                     )
-                    st.plotly_chart(fig_pie, width="stretch", config={'displayModeBar': False})
+                    st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
 
-        # [2단] 시설별 점검 건수
-        with g_col2:
+        # [3단] 시설별 점검 건수
+        with g_col3:
             target_col_fac = "시설명" 
             if target_col_fac in yearly_data.columns:
                 st.write(f"**🏢 {target_col_fac}별 건수**")
@@ -955,44 +965,47 @@ if dashboard_data is not None:
                     textfont_size=11
                 )
                 fig_bar.update_layout(
-                    margin=dict(t=35, b=0, l=0, r=0), height=450, # 높이를 1단과 동일하게 450으로 맞춤 
+                    margin=dict(t=35, b=0, l=0, r=0), height=450, # 높이를 1, 2단과 동일하게 450으로 맞춤 
                     showlegend=False,
                     xaxis_title=None, yaxis_title=None,
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
                     dragmode=False 
                 )
-                st.plotly_chart(fig_bar, width="stretch", config={'displayModeBar': False})
+                st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
-# --- 푸터(Footer) 섹션 ---
+# --- [5] 동적 푸터(Footer) 섹션 (교체 구간) ---
 st.write("") # 간격 확보
 st.write("---")
 footer_cols = st.columns([3, 1])
 
 with footer_cols[0]:
-    st.markdown("### 🔒 Data Governance & Privacy")
+    st.markdown(f"### 🔒 Data Governance & Privacy")
     st.caption(f"""
-    **© 2026 {cfg['institution']['name']} (Powered by KYWA).** 본 시스템은 **한국청소년활동진흥원(KYWA)** 의 스마트 안전관리 기술을 바탕으로 구축되었으며, **공공기관 AI 활용 가이드라인** 및 **정보보안 업무규정**을 엄격히 준수합니다.
+    **© 2026 {cfg['institution']['name']} {cfg['footer']['department']}.** 본 시스템은 **공공기관 AI 활용 가이드라인** 및 **정보보안 업무규정**을 엄격히 준수합니다.
     
-    * **운영 주체 및 방침:** 본 플랫폼의 운영 및 데이터 관리 책임은 **{cfg['institution']['name']}**에 있으며, **{cfg['institution']['abbr']} AI 안전센터**를 통해 데이터 정합성 검토를 거칩니다. 부적절하거나 중복된 데이터는 운영 관리자에 의해 수정 또는 삭제될 수 있습니다.
     * **데이터 보안:** 입력된 모든 정보는 **API 옵트아웃(Opt-out) 설정**이 적용되어 외부 모델 학습에 활용되지 않습니다.
-    * **기술 지원:** **KYWA**는 공공기관 안전관리 혁신을 위해 본 AI 모델의 기술적 가이드 및 스마트 안전관리 플랫폼 모델을 제공합니다.
-    * **면책 고지:** AI 분석 정보는 위험 요인 발굴을 돕는 가이드라인입니다. 실제 위험성 평가 시에는 현장 상황을 반영한 담당 직원의 면밀한 검토가 반드시 필요합니다.
+    * **운영 방침:** **{cfg['institution']['abbr']} AI 안전센터**로 전송된 데이터는 **담당자의 데이터 정합성 검토**를 거칩니다. 
+      점검 내용이 부적절하거나 중복된 경우, 데이터 신뢰성 유지를 위해 운영 관리자에 의해 임의 수정 또는 삭제될 수 있습니다.
+    * **면책 고지:** AI 분석 정보는 위험 요인 발굴을 돕는 가이드라인입니다. 실제 위험성 평가 시에는 현장 상황을 반영한 담당 직원의 면밀한 검토를 권고합니다.
     """)
 
 with footer_cols[1]:
     st.markdown("### 📞 Contact")
-    # HTML을 사용하여 아이콘 색상을 제어합니다 (Dark Gray/Black 계열)
+    # HTML을 사용하여 config 정보를 동적으로 삽입합니다.
     st.markdown(f"""
     <div style="line-height: 1.6;">
-        <span style="font-weight: bold; font-size: 0.9rem; color: #31333F;">한국청소년활동진흥원 안전경영부</span><br>
-        <span style="color: #444; font-size: 0.85rem;">📧 archi01@kywa.or.kr</span><br>
+        <span style="font-weight: bold; font-size: 0.9rem; color: #31333F;">{cfg['footer']['department']}</span><br>
+        <span style="color: #444; font-size: 0.85rem;">📧 {cfg['footer']['email']}</span><br>
         <span style="color: #444; font-size: 0.85rem;">
-            <span style="display: inline-block; transform: rotate(10deg); color: #000;">📞</span> 02-6959-7138
+            <span style="display: inline-block; transform: rotate(10deg); color: #000;">📞</span> {cfg['footer']['phone']}
         </span>
     </div>
     """, unsafe_allow_html=True)
 
-# 최하단 한 줄 강조
-st.markdown("<p style='font-size: 0.8rem; color: gray; text-align: center;'>Safe Together, KYWA AI Risk Assessment System</p>", unsafe_allow_html=True)
-
+# 최하단 한 줄 강조 (기관 약어와 앱 타이틀 동적 반영)
+st.markdown(f"""
+    <p style='font-size: 0.8rem; color: gray; text-align: center;'>
+        Safe Together, {cfg['institution']['abbr']} {cfg['institution']['app_title']}
+    </p>
+""", unsafe_allow_html=True)
