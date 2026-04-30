@@ -440,7 +440,7 @@ def apply_face_blur_ai(img_file):
         """
         
         response = client.models.generate_content(
-            model=model=MODEL_ID,
+            model=MODEL_ID,
             contents=[prompt, pil_img],
             config=genai.types.GenerateContentConfig(
                 response_mime_type="application/json"
