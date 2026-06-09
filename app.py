@@ -653,15 +653,19 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
 
                 # 1단계: 사진이 있다면 즉시 비식별화 처리
                 if img_file:
-                    # 저희가 위에서 정의한 AI 비식별화 함수 호출
+                    # 저희가 위에서 정의한 AI 비식별화 함수 호출 (1차 API 호출 완료)
                     processed_bytes = apply_face_blur_ai(img_file)
                     # 비식별화된 바이트 데이터를 Gemini가 읽을 수 있는 PIL 이미지로 변환
                     analysis_image = Image.open(io.BytesIO(processed_bytes))
                     # 사진도 리스트에 담습니다.
                     content.append(analysis_image)
 
-                # [2단계] 재시도 로직 및 최신 라이브러리 호출
+                # 💡 [여기에 추가] 구글 서버의 분당 요청 제한(RPM) 우회를 위한 짧은 휴식
+                # 1차 비식별화 호출 직후 약 1.5초간 대기하여 연속 연타를 방지합니다.
                 import time
+                time.sleep(1.5)
+
+                # [2단계] 재시도 로직 및 최신 라이브러리 호출 (2차 API 호출 시작)
                 response = None
                 max_retries = 3
 
