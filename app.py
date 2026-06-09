@@ -119,6 +119,22 @@ if "gcp_service_account" in st.secrets:
 else:
     st.error("Secrets 설정에서 'gcp_service_account'를 찾을 수 없습니다.")
 
+# --- [추가] 이미지 압축 함수 ---
+def compress_image(uploaded_file):
+    """
+    업로드된 이미지의 해상도를 최대 1280px로 조정하고
+    화질을 80%로 압축하여 대역폭 및 API 처리 속도를 최적화합니다.
+    """
+    image = Image.open(uploaded_file)
+    # 1. 최대 해상도를 1280px 수준으로 리사이징 (비율 유지)
+    image.thumbnail((1280, 1280))
+    
+    # 2. JPEG 파일로 압축하여 바이트로 변환
+    buffer = io.BytesIO()
+    image.convert("RGB").save(buffer, format="JPEG", quality=80) # 화질 80%로 압축
+    buffer.seek(0)
+    return buffer.getvalue() # 바이트 값 자체를 반환
+
 # (이후 기존의 CSS 설정 및 나머지 코드를 이어 붙이시면 됩니다.)
 # 주의: 아래쪽에 있는 st.set_page_config(page_title="KYWA AI 위험성평가 시스템", ...) 코드는 삭제하세요.
 
@@ -243,7 +259,7 @@ st.markdown("""
     <style>
     /* 모든 Streamlit 버튼 스타일 수정 */
     div.stButton > button {
-        background-color: #005995 !important; /* 기본 붉은색 */
+        background-color: #FF701E !important; /* 기본 붉은색 */
         color: white !important;
         border: none !important;
         padding: 0.5rem 1rem !important;
@@ -269,7 +285,7 @@ st.markdown("""
     <style>
     /* 버튼 스타일 */
     div.stButton > button {
-        background-color: #005995 !important;
+        background-color: #FF701E !important;
         color: white !important;
         font-weight: bold !important;
         border-radius: 0.5rem !important;
@@ -282,7 +298,7 @@ st.markdown("""
     /* 로고 및 타이틀 스타일 */
     .logo-img { cursor: pointer; display: block; margin-top: 2px; }
     .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #005995 !important; }
+    .refresh-title:hover { color: #FF701E !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -327,7 +343,7 @@ with header_col1:
         # 로고 로딩 실패 시 텍스트(영문 약어 x KYWA)로 대체 표출
         st.markdown(f'''
             <a href="{inst_url}" target="_blank" style="text-decoration:none; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
-                <span style="color:#005995;">{inst_abbr}</span> 
+                <span style="color:#FF701E;">{inst_abbr}</span> 
                 <span style="color:#000000;">x</span> 
                 <span style="color:#FF4B4B;">KYWA</span>
             </a>
@@ -391,7 +407,7 @@ st.markdown("""
             display: block !important;
             margin: 10px auto !important;
             padding: 10px 20px !important;
-            background-color: #005995 !important;
+            background-color: #FF701E !important;
             color: white !important;
             border-radius: 8px !important;
             cursor: pointer !important;
@@ -453,19 +469,28 @@ with col2:
 def apply_face_blur_ai(img_file):
     """
     Gemini AI로 얼굴 좌표를 정밀 탐지하고 OpenCV로 블러링합니다.
+    선제 이미지 압축을 통해 처리 속도를 극대화합니다.
     """
     try:
-        # 1. 이미지 읽기 및 변환
+        # 1. [속도 최적화] 원본 이미지를 1280px, 화질 80%로 선제 압축
         img_file.seek(0)
-        file_bytes = np.asarray(bytearray(img_file.read()), dtype=np.uint8)
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        if image is None: return img_file.getvalue()
+        compressed_bytes = compress_image(img_file)
         
+        # 2. 압축된 바이트 데이터를 OpenCV 이미지 객체로 변환
+        file_bytes = np.asarray(bytearray(compressed_bytes), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        
+        # 변환 실패 시 안전하게 압축된 바이트 원본 반환 (앱 크래시 방지)
+        if image is None: 
+            return compressed_bytes
+        
+        # 압축된 이미지의 실제 해상도 정보 추출
         h, w, _ = image.shape
-        pil_img = Image.open(io.BytesIO(img_file.getvalue()))
+        
+        # Gemini API 전송을 위해 PIL 이미지 객체도 압축본 기반으로 생성
+        pil_img = Image.open(io.BytesIO(compressed_bytes))
 
-        # 2. Gemini AI에게 얼굴 좌표 요청 (JSON 형식)
-        # prompt에 '얼굴이 없다면 빈 리스트를 반환해'라고 명시하여 오류 방지
+        # 3. Gemini AI에게 얼굴 좌표 요청 (JSON 형식)
         prompt = """
         이미지에서 모든 사람의 얼굴(머리 전체) 위치를 찾아서 
         [ymin, xmin, ymax, xmax] 좌표 리스트로 응답해줘. 
@@ -481,47 +506,49 @@ def apply_face_blur_ai(img_file):
             )
         )
 
-        # 3. 좌표 파싱 및 블러 처리
+        # 4. 좌표 파싱 및 블러 처리
         face_data = json.loads(response.text)
         faces = face_data.get("faces", [])
 
+        # 탐지된 얼굴이 없으면 압축된 원본 이미지 반환 (속도 및 대역폭 이점 유지)
         if not faces:
-            return img_file.getvalue() # 얼굴이 없으면 원본 반환
+            return compressed_bytes
 
         for box in faces:
             ymin, xmin, ymax, xmax = box
-            # 상대 좌표를 절대 좌표로 변환 (0~1000 -> 실제 픽셀)
+            # 상대 좌표를 절대 좌표로 변환 (0~1000 -> 실제 압축 이미지의 픽셀 좌표)
             left, top = int(xmin * w / 1000), int(ymin * h / 1000)
             right, bottom = int(xmax * w / 1000), int(ymax * h / 1000)
             
             rw, rh = right - left, bottom - top
-            if rw <= 0 or rh <= 0: continue
+            if rw <= 0 or rh <= 0: 
+                continue
 
             # ROI 추출 및 블러 적용
             face_roi = image[top:bottom, left:right]
             
-            # 원형 마스크 생성 (사용자님의 기존 블러 로직 활용)
+            # 원형 마스크 생성
             mask = np.zeros((rh, rw), dtype=np.uint8)
             cv2.circle(mask, (rw // 2, rh // 2), min(rw, rh) // 2, (255), -1)
             
-            # 블러 강도 설정 (level=21 정도가 적당함)
+            # 블러 강도 설정 (level=21)
             level = 21
             blurred_roi = cv2.GaussianBlur(face_roi, (level, level), 0)
             
             mask_3ch = cv2.merge([mask, mask, mask])
             image[top:bottom, left:right] = np.where(mask_3ch == 255, blurred_roi, face_roi)
 
-        # 4. 결과 인코딩
+        # 5. 결과 인코딩 (화질 90% 수준의 JPEG 바이트로 최종 변환)
         _, buffer = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 90])
         return buffer.tobytes()
 
     except Exception as e:
         st.error(f"AI 비식별화 중 오류 발생: {e}")
-        return img_file.getvalue()
+        # 오류 발생 시 시스템이 멈추지 않도록 압축된 이미지 바이트를 안전하게 반환
+        return compressed_bytes
 
 
 # --- 6. AI 분석 실행 ---
-
 
 # --- 분석 시작 버튼 부분 (핵심 로직 통합) ---
 
@@ -626,15 +653,19 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
 
                 # 1단계: 사진이 있다면 즉시 비식별화 처리
                 if img_file:
-                    # 저희가 위에서 정의한 AI 비식별화 함수 호출
+                    # 저희가 위에서 정의한 AI 비식별화 함수 호출 (1차 API 호출 완료)
                     processed_bytes = apply_face_blur_ai(img_file)
                     # 비식별화된 바이트 데이터를 Gemini가 읽을 수 있는 PIL 이미지로 변환
                     analysis_image = Image.open(io.BytesIO(processed_bytes))
                     # 사진도 리스트에 담습니다.
                     content.append(analysis_image)
 
-                # [2단계] 재시도 로직 및 최신 라이브러리 호출
+                # 💡 [여기에 추가] 구글 서버의 분당 요청 제한(RPM) 우회를 위한 짧은 휴식
+                # 1차 비식별화 호출 직후 약 1.5초간 대기하여 연속 연타를 방지합니다.
                 import time
+                time.sleep(1.5)
+
+                # [2단계] 재시도 로직 및 최신 라이브러리 호출 (2차 API 호출 시작)
                 response = None
                 max_retries = 3
 
