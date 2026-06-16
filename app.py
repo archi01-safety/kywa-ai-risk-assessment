@@ -638,12 +638,11 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
                 1. 강도 4점(사망 또는 영구 장애), 3점(중대한 부상/휴업 수반), 2점(응급처치 이상/비휴업), 1점(경미한 부상)
 
                 [판정 원칙 및 예외 기준]
-                1. 일상적 위험 vs 산업적 위험 구분: 단순 전도 등은 강도 1점을 원칙으로 함.
-                2. 점수 조정 예시: 보도블럭 파손(빈도 2, 강도 1 -> 2점), 바닥 물기(빈도 3, 강도 1 -> 3점), 키보드 및 마우스 작업(빈도 3, 강도 1 -> 3점)
+                1. 일상적 위험 vs 산업적 위험 구분: 일상적 위험에 포함되는 단순 전도 등은 강도 1점 또는 2점을 원칙으로 함.
 
                 [종합 등급 판정 가이드라인]
-                - 매우 낮음(1~3점), 낮음(4~6점), 보통(8점), 높음(9~12점), 매우 높음(16~20점)
-                - 8점부터는 '허용 불가능한 수준'의 사안으로 판단하므로 경미한 사항은 최대 6점을 기준으로 함.
+                - 매우 낮음(1~5점), 낮음(6~11점), 보통(12~15점), 높음(16~18점), 매우 높음(19~20점)
+                - 16점부터는 '허용 불가능한 수준'의 사안으로 판단하므로 일상적 위험이나 경미한 사항은 최대 15점을 기준으로 함.
                 - 모든 문장은 명사형 종결.
                 - 반드시 다음 JSON 형식을 엄수하세요: 키는 category, location, scenario, p, s, score, grade, law, solution 이며 리스트 [] 안에 담아 출력하세요.
                 """
@@ -1009,6 +1008,18 @@ with footer_cols[0]:
     * **면책 고지:** AI 분석 정보는 위험 요인 발굴을 돕는 가이드라인입니다. 실제 위험성 평가 시에는 현장 상황을 반영한 담당 직원의 면밀한 검토가 반드시 필요합니다.
     """)
 
+with footer_cols[1]:
+    st.markdown("### 📞 Contact")
+    # HTML을 사용하여 아이콘 색상을 제어합니다 (Dark Gray/Black 계열)
+    st.markdown(f"""
+    <div style="line-height: 1.6;">
+        <span style="font-weight: bold; font-size: 0.9rem; color: #31333F;">한국청소년활동진흥원 안전경영부</span><br>
+        <span style="color: #444; font-size: 0.85rem;">📧 archi01@kywa.or.kr</span><br>
+        <span style="color: #444; font-size: 0.85rem;">
+            <span style="display: inline-block; transform: rotate(10deg); color: #000;">📞</span> 02-6959-7138
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
 
 # 최하단 한 줄 강조
 st.markdown("<p style='font-size: 0.8rem; color: gray; text-align: center;'>Safe Together, KYWA AI Risk Assessment System</p>", unsafe_allow_html=True)
