@@ -377,6 +377,9 @@ with col1:
     # config.json의 departments 리스트를 사용합니다.
     담당부서_list = cfg['ui_options']['departments']
     selected_dept = st.selectbox("• 담당 부서 선택 (필수)", 담당부서_list)
+
+    # 💡 바로 여기에 '이름' 입력 코드를 삽입하셔야 합니다!
+    user_name = st.text_input("• 이름 입력 (필수)", placeholder="성명을 입력하세요.", key="user_name_input")
     
     st.markdown("### **📝 현장 상황 설명**")
     placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
@@ -801,6 +804,7 @@ if st.session_state.analysis_results:
                             current_time,           # 타임스탬프
                             selected_facility,      # 시설명
                             selected_dept,          # 담당 부서
+                            user_name,              # 이름
                             row.get("location"),    # 장소
                             row.get("category"),    # 유해위험요인(분류)
                             row.get("scenario"),    # 위험상황
@@ -930,8 +934,8 @@ if dashboard_data is not None:
 
         # [1단] 유해위험요인 현황 (E컬럼 - Index 4)
         with g_col1:
-            if len(yearly_data.columns) >= 5:
-                target_col_cat = yearly_data.columns[4] 
+            if len(yearly_data.columns) >= 6:
+                target_col_cat = yearly_data.columns[5] 
                 st.write(f"**⚠️ {target_col_cat} 현황**")
                 if not yearly_data[target_col_cat].dropna().empty:
                     yearly_data[target_col_cat] = yearly_data[target_col_cat].astype(str).str.strip()
@@ -1008,6 +1012,18 @@ with footer_cols[0]:
     * **면책 고지:** AI 분석 정보는 위험 요인 발굴을 돕는 가이드라인입니다. 실제 위험성 평가 시에는 현장 상황을 반영한 담당 직원의 면밀한 검토가 반드시 필요합니다.
     """)
 
+with footer_cols[1]:
+    st.markdown("### 📞 Contact")
+    # HTML을 사용하여 아이콘 색상을 제어합니다 (Dark Gray/Black 계열)
+    st.markdown(f"""
+    <div style="line-height: 1.6;">
+        <span style="font-weight: bold; font-size: 0.9rem; color: #31333F;">한국청소년활동진흥원 안전경영부</span><br>
+        <span style="color: #444; font-size: 0.85rem;">📧 archi01@kywa.or.kr</span><br>
+        <span style="color: #444; font-size: 0.85rem;">
+            <span style="display: inline-block; transform: rotate(10deg); color: #000;">📞</span> 02-6959-7138
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
 
 # 최하단 한 줄 강조
 st.markdown("<p style='font-size: 0.8rem; color: gray; text-align: center;'>Safe Together, KYWA AI Risk Assessment System</p>", unsafe_allow_html=True)
