@@ -18,7 +18,7 @@
   },
   "ui_options": {
     "facilities": ["한국보건산업진흥원"],
-    "departments": ["경영지원실"]
+    "departments": ["한국보건산업진흥원", "협력업체"]
   },
   "ai_settings": {
     "model_name": "gemini-flash-latest",
@@ -34,8 +34,8 @@
     }
   },
   "footer": {
-    "department": "KYWA 경영지원본부 안전경영부",
-    "email": "archi01@kywa.or.kr",
-    "phone": "02-6959-7138"
+    "department": "",
+    "email": "",
+    "phone": ""
   }
 }
