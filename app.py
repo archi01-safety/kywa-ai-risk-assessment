@@ -982,19 +982,6 @@ with footer_cols[0]:
     * **면책 고지:** AI 분석 정보는 위험 요인 발굴을 돕는 가이드라인입니다. 실제 위험성 평가 시에는 현장 상황을 반영한 담당 직원의 면밀한 검토가 반드시 필요합니다.
     """)
 
-with footer_cols[1]:
-    st.markdown("### 📞 Contact")
-    # HTML을 사용하여 아이콘 색상을 제어합니다 (Dark Gray/Black 계열)
-    st.markdown(f"""
-    <div style="line-height: 1.6;">
-        <span style="font-weight: bold; font-size: 0.9rem; color: #31333F;">한국청소년활동진흥원 안전경영부</span><br>
-        <span style="color: #444; font-size: 0.85rem;">📧 archi01@kywa.or.kr</span><br>
-        <span style="color: #444; font-size: 0.85rem;">
-            <span style="display: inline-block; transform: rotate(10deg); color: #000;">📞</span> 02-6959-7138
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
-
 # 최하단 한 줄 강조
 st.markdown("<p style='font-size: 0.8rem; color: gray; text-align: center;'>Safe Together, KYWA AI Risk Assessment System</p>", unsafe_allow_html=True)
 
