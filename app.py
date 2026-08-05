@@ -148,13 +148,18 @@ st.markdown("""
     footer {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}
     
-    /* 2. 상단 여백 조절 */
+    /* 2. 전체 앱 배경색 변경 (차분하고 은은한 오프화이트 톤) */
+    .stApp {
+        background-color: #f8f9fa !important;
+    }
+    
+    /* 3. 상단 여백 조절 */
     .block-container {
         padding-top: 1rem !important;
         padding-bottom: 1.5rem !important;
     }
 
-    /* 3. 데이터프레임, 이미지 및 기본 라벨 스타일 */
+    /* 4. 데이터프레임, 이미지 및 기본 라벨 스타일 */
     html, body, [data-testid="stWidgetLabel"] p {
         color: var(--text-color);
     }
@@ -168,7 +173,14 @@ st.markdown("""
         filter: brightness(var(--image-brightness, 1));
     }
 
-    /* 4. 버튼 스타일 및 호버(Hover) 액션 강력 적용 */
+    /* 5. 카드 컨테이너 배경을 깔끔한 흰색(#ffffff)으로 고정하여 배경과 대비 형성 */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #ffffff !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    /* 6. 버튼 스타일 및 호버(Hover) 액션 */
     div[data-testid="stButton"] > button,
     div.stButton > button,
     .stButton button {
@@ -182,7 +194,7 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
     }
 
-    /* 마우스 호버 시: 다크 그린 + 살짝 떠오르는 부드러운 효과 */
+    /* 마우스 호버 시 */
     div[data-testid="stButton"] > button:hover,
     div.stButton > button:hover,
     .stButton button:hover {
@@ -200,13 +212,12 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
     }
 
-    /* 5. 로고 및 타이틀 커스텀 스타일 */
+    /* 7. 로고 및 타이틀 커스텀 스타일 */
     .logo-img { cursor: pointer; display: block; margin-top: 2px; }
     .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
     .refresh-title:hover { color: #409933 !important; }
     </style>
 """, unsafe_allow_html=True)
-
 
 # ==============================================================================
 # [메인 로직 및 파이썬 기능 구현 영역]
