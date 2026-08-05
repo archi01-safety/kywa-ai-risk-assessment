@@ -376,7 +376,7 @@ with col1:
     
     # config.json의 departments 리스트를 사용합니다.
     담당부서_list = cfg['ui_options']['departments']
-    selected_dept = st.selectbox("• 담당 부서 선택 (필수)", 담당부서_list)
+    selected_dept = st.selectbox("• 담당 팀명 선택 (필수)", 담당부서_list)
     
     st.markdown("### **📝 현장 상황 설명**")
     placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
@@ -801,7 +801,7 @@ if st.session_state.analysis_results:
                         sheet_row = [
                             current_time,           # 타임스탬프
                             selected_facility,      # 시설명
-                            selected_dept,          # 담당 부서
+                            selected_dept,          # 담당 팀명
                             row.get("location"),    # 장소
                             row.get("category"),    # 유해위험요인(분류)
                             row.get("scenario"),    # 위험상황
