@@ -138,25 +138,27 @@ def compress_image(uploaded_file):
 # (이후 기존의 CSS 설정 및 나머지 코드를 이어 붙이시면 됩니다.)
 # 주의: 아래쪽에 있는 st.set_page_config(page_title="KYWA AI 위험성평가 시스템", ...) 코드는 삭제하세요.
 
-# [수정 2] 파라미터 이름을 unsafe_allow_html=True 로 변경
+# ==============================================================================
+# [통합 CSS] 전역 스타일, 레이아웃 및 버튼 호버 커스텀 (하나의 블록으로 통합)
+# ==============================================================================
 st.markdown("""
     <style>
-    /* 1. 상단 헤더 메뉴 및 푸터 제거 (추가됨) */
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
+    /* 1. 상단 헤더 메뉴 및 푸터 제거 */
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important;}
     
-    /* 2. 상단 여백 조절 (추가됨) */
+    /* 2. 상단 여백 조절 */
     .block-container {
-        padding-top: 0rem;
-        padding-bottom: 1rem;
+        padding-top: 1rem !important;
+        padding-bottom: 1.5rem !important;
     }
 
-    /* 기존 코드 내용 유지 */
+    /* 3. 데이터프레임, 이미지 및 기본 라벨 스타일 */
     html, body, [data-testid="stWidgetLabel"] p {
         color: var(--text-color);
     }
-    
+
     .stDataFrame {
         width: 100% !important;
     }
@@ -165,14 +167,56 @@ st.markdown("""
         max-width: 100%;
         filter: brightness(var(--image-brightness, 1));
     }
-    </style>
-    """, unsafe_allow_html=True)
 
-# 1. 환경 설정 및 보안 우회 (필요한 경우)
+    /* 4. 버튼 스타일 및 호버(Hover) 액션 강력 적용 */
+    div[data-testid="stButton"] > button,
+    div.stButton > button,
+    .stButton button {
+        background-color: #409933 !important;
+        color: #ffffff !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 0.5rem !important;
+        font-weight: bold !important;
+        border: 1px solid transparent !important;
+        transition: all 0.25s ease-in-out !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* 마우스 호버 시: 다크 그린 + 살짝 떠오르는 부드러운 효과 */
+    div[data-testid="stButton"] > button:hover,
+    div.stButton > button:hover,
+    .stButton button:hover {
+        background-color: #2e6e24 !important;
+        color: #ffffff !important;
+        border: 1px solid transparent !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    /* 버튼 클릭(Active) 시 */
+    div[data-testid="stButton"] > button:active,
+    div.stButton > button:active {
+        transform: translateY(0px) !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* 5. 로고 및 타이틀 커스텀 스타일 */
+    .logo-img { cursor: pointer; display: block; margin-top: 2px; }
+    .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
+    .refresh-title:hover { color: #409933 !important; }
+    </style>
+""", unsafe_allow_html=True)
+
+
+# ==============================================================================
+# [메인 로직 및 파이썬 기능 구현 영역]
+# ==============================================================================
+
+# 1. 환경 설정 및 보안 우회
 os.environ['PYTHONHTTPSVERIFY'] = '0'
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# [0] 설정 파일 로드 (가장 먼저 실행되어야 합니다)
+# [0] 설정 파일 로드
 def load_config():
     with open('config.json', 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -191,19 +235,12 @@ if "analysis_results" not in st.session_state:
 if "final_data" not in st.session_state:
     st.session_state.final_data = None
 
-# 3. 모델 및 클라이언트 설정 (최신 google-genai 방식)
+# 3. 모델 및 클라이언트 설정
 try:
     if "GEMINI_API_KEY" in st.secrets:
         api_key = st.secrets["GEMINI_API_KEY"]
-        
-        # 클라이언트 객체 생성 (기존 genai.configure 대체)
-        # 2026년 기준, 별도의 transport 설정 없이도 최적화된 통신을 지원합니다.
         client = genai.Client(api_key=api_key)
-        
-        # 모델 이름 정의 (2026년 표준인 gemini-2.0-flash 권장, gemini-flash-latest 사용중임)
-        # 만약 기존 모델을 유지하고 싶다면 'gemini-1.5-flash' 등을 입력하세요.
         model_name = "gemini-flash-latest" 
-        
     else:
         st.error("Secrets에 'GEMINI_API_KEY'가 설정되지 않았습니다.")
         st.stop()
@@ -212,11 +249,10 @@ except Exception as e:
     st.stop()
 
 
-# --- [2단계] 구글 드라이브/시트 전송 함수 추가 ---
+# --- [2단계] 구글 드라이브/시트 전송 함수 ---
 
 def upload_photo_to_drive(file_obj, filename):
     try:
-        # Apps Script 웹 앱 URL (방금 복사한 주소)
         apps_script_url = "https://script.google.com/macros/s/AKfycbwMhipDH9zMVajhbD2LBXGgnJdaqs3oHmatjqtvAXWL0PXhInk6tqsqRcb6MJkZFChm/exec"
         
         file_obj.seek(0)
@@ -227,7 +263,6 @@ def upload_photo_to_drive(file_obj, filename):
             "fileBase64": img_base64
         }
         
-        # POST 요청으로 사진 전송
         response = requests.post(apps_script_url, json=payload)
         res_data = response.json()
         
@@ -237,70 +272,19 @@ def upload_photo_to_drive(file_obj, filename):
 
 def append_row_to_sheet(row_data):
     try:
-        # [확인 필요] 실제 시트 탭 이름과 공백이 정확히 일치해야 합니다.
-        # 만약 구글폼 연동 시트라면 보통 '설문지 응답 1' 입니다.
         range_name = "'시트1'!A1" 
-        
         body = {'values': [row_data]}
         sheets_service.spreadsheets().values().append(
             spreadsheetId=SPREADSHEET_ID, 
             range=range_name,
             valueInputOption='USER_ENTERED', 
-            insertDataOption='INSERT_ROWS', # [추가] 새 행을 삽입하며 추가하도록 명시
+            insertDataOption='INSERT_ROWS',
             body=body
         ).execute()
         return True
     except Exception as e:
         st.error(f"시트 저장 실패: {str(e)}")
         return False
-
-# --- [추가] 버튼 스타일 설정 ---
-st.markdown("""
-    <style>
-    /* 모든 Streamlit 버튼 스타일 수정 */
-    div.stButton > button {
-        background-color: #409933 !important; /* 기본 붉은색 */
-        color: white !important;
-        border: none !important;
-        padding: 0.5rem 1rem !important;
-        border-radius: 0.5rem !important;
-        font-weight: bold !important;
-        transition: all 0.3s ease !important;
-    }
-
-    /* 마우스 호버(Hover) 시 효과 */
-    div.stButton > button:hover {
-        background-color: #ff3333 !important; /* 마우스 올렸을 때 더 진한 빨강 */
-        color: white !important;
-        border: none !important;
-        transform: scale(1.01); /* 아주 살짝 커지는 효과 */
-    }
-    
-    /* Word/Excel 저장 버튼 등 일반 버튼도 동일 적용을 원치 않으시면 위 범위를 좁힐 수 있습니다 */
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 4. 스타일 및 헤더 디자인 (안전 모드) ---
-st.markdown("""
-    <style>
-    /* 버튼 스타일 */
-    div.stButton > button {
-        background-color: #409933 !important;
-        color: white !important;
-        font-weight: bold !important;
-        border-radius: 0.5rem !important;
-        transition: all 0.3s ease !important;
-    }
-    div.stButton > button:hover {
-        background-color: #ff3333 !important;
-        transform: scale(1.01);
-    }
-    /* 로고 및 타이틀 스타일 */
-    .logo-img { cursor: pointer; display: block; margin-top: 2px; }
-    .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #409933 !important; }
-    </style>
-""", unsafe_allow_html=True)
 
 # 변수 초기화
 local_logo_url = None
