@@ -148,36 +148,41 @@ st.markdown("""
     footer {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}
     
-    /* 2. 전체 앱 배경색 변경 (차분하고 은은한 오프화이트 톤) */
-    .stApp {
-        background-color: #f8f9fa !important;
-    }
-    
-    /* 3. 상단 여백 조절 */
+    /* 2. 상단 여백 조절 */
     .block-container {
         padding-top: 1rem !important;
         padding-bottom: 1.5rem !important;
     }
 
-    /* 4. 데이터프레임, 이미지 및 기본 라벨 스타일 */
-    html, body, [data-testid="stWidgetLabel"] p {
-        color: var(--text-color);
+    /* 3. 기본 라이트 모드 (오프화이트 배경 + 흰색 카드) */
+    .stApp {
+        background-color: #f8f9fa !important;
     }
-
-    .stDataFrame {
-        width: 100% !important;
-    }
-    
-    img {
-        max-width: 100%;
-        filter: brightness(var(--image-brightness, 1));
-    }
-
-    /* 5. 카드 컨테이너 배경을 깔끔한 흰색(#ffffff)으로 고정하여 배경과 대비 형성 */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #ffffff !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    /* 4. 다크 모드 자동 감지 및 적용 (모바일 & PC 공통) */
+    @media (prefers-color-scheme: dark) {
+        .stApp {
+            background-color: #121212 !important; /* 다크모드 배경 */
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #1e1e1e !important; /* 다크모드 카드 배경 */
+            border-color: #333333 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+        }
+    }
+
+    /* 5. 데이터프레임 및 이미지 설정 */
+    .stDataFrame {
+        width: 100% !important;
+    }
+    img {
+        max-width: 100%;
+        filter: brightness(var(--image-brightness, 1));
     }
 
     /* 6. 버튼 스타일 및 호버(Hover) 액션 */
