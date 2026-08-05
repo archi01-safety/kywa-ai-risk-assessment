@@ -138,31 +138,25 @@ def compress_image(uploaded_file):
 # (이후 기존의 CSS 설정 및 나머지 코드를 이어 붙이시면 됩니다.)
 # 주의: 아래쪽에 있는 st.set_page_config(page_title="KYWA AI 위험성평가 시스템", ...) 코드는 삭제하세요.
 
-# Pretendard 웹 폰트 적용 및 전역 스타일링 (업로드 버튼 겹침 수정 버전)
+# [수정 2] 파라미터 이름을 unsafe_allow_html=True 로 변경
 st.markdown("""
     <style>
-    /* 1. Pretendard 웹 폰트 불러오기 */
-    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
-
-    /* 2. [class*="st-"] 선택자 대신 특정 텍스트 요소에만 폰트 적용 (아이콘 폰트 훼손 방지) */
-    html, body, p, span, div[data-testid="stMarkdownContainer"] p, [data-testid="stWidgetLabel"] p, button {
-        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif !important;
-        color: var(--text-color);
-        letter-spacing: -0.01em;
-    }
-
-    /* 3. 상단 헤더 메뉴 및 푸터 제거 */
+    /* 1. 상단 헤더 메뉴 및 푸터 제거 (추가됨) */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     #MainMenu {visibility: hidden;}
     
-    /* 4. 여백 및 시각적 레이아웃 조절 */
+    /* 2. 상단 여백 조절 (추가됨) */
     .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1.5rem;
+        padding-top: 0rem;
+        padding-bottom: 1rem;
     }
 
-    /* 5. 기존 데이터프레임 및 이미지 설정 유지 */
+    /* 기존 코드 내용 유지 */
+    html, body, [data-testid="stWidgetLabel"] p {
+        color: var(--text-color);
+    }
+    
     .stDataFrame {
         width: 100% !important;
     }
@@ -260,29 +254,29 @@ def append_row_to_sheet(row_data):
         st.error(f"시트 저장 실패: {str(e)}")
         return False
 
-# --- 버튼 스타일 설정 ---
+# --- [추가] 버튼 스타일 설정 ---
 st.markdown("""
     <style>
-    /* 모든 Streamlit 버튼 스타일 */
+    /* 모든 Streamlit 버튼 스타일 수정 */
     div.stButton > button {
-        background-color: #409933 !important;
+        background-color: #005995 !important; /* 기본 붉은색 */
         color: white !important;
+        border: none !important;
         padding: 0.5rem 1rem !important;
         border-radius: 0.5rem !important;
         font-weight: bold !important;
-        border: 1px solid transparent !important;
-        transition: all 0.2s ease-in-out !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+        transition: all 0.3s ease !important;
     }
 
     /* 마우스 호버(Hover) 시 효과 */
     div.stButton > button:hover {
-        background-color: #337a28 !important;
+        background-color: #ff3333 !important; /* 마우스 올렸을 때 더 진한 빨강 */
         color: white !important;
-        border: 1px solid transparent !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+        border: none !important;
+        transform: scale(1.01); /* 아주 살짝 커지는 효과 */
     }
+    
+    /* Word/Excel 저장 버튼 등 일반 버튼도 동일 적용을 원치 않으시면 위 범위를 좁힐 수 있습니다 */
     </style>
 """, unsafe_allow_html=True)
 
@@ -291,7 +285,7 @@ st.markdown("""
     <style>
     /* 버튼 스타일 */
     div.stButton > button {
-        background-color: #409933 !important;
+        background-color: #005995 !important;
         color: white !important;
         font-weight: bold !important;
         border-radius: 0.5rem !important;
@@ -304,7 +298,7 @@ st.markdown("""
     /* 로고 및 타이틀 스타일 */
     .logo-img { cursor: pointer; display: block; margin-top: 2px; }
     .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #409933 !important; }
+    .refresh-title:hover { color: #005995 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -349,7 +343,7 @@ with header_col1:
         # 로고 로딩 실패 시 텍스트(영문 약어 x KYWA)로 대체 표출
         st.markdown(f'''
             <a href="{inst_url}" target="_blank" style="text-decoration:none; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
-                <span style="color:#409933;">{inst_abbr}</span> 
+                <span style="color:#005995;">{inst_abbr}</span> 
                 <span style="color:#000000;">x</span> 
                 <span style="color:#FF4B4B;">KYWA</span>
             </a>
@@ -382,7 +376,7 @@ with col1:
     
     # config.json의 departments 리스트를 사용합니다.
     담당부서_list = cfg['ui_options']['departments']
-    selected_dept = st.selectbox("• 담당 팀명 선택 (필수)", 담당부서_list)
+    selected_dept = st.selectbox("• 담당 부서 선택 (필수)", 담당부서_list)
     
     st.markdown("### **📝 현장 상황 설명**")
     placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
@@ -413,7 +407,7 @@ st.markdown("""
             display: block !important;
             margin: 10px auto !important;
             padding: 10px 20px !important;
-            background-color: #409933 !important;
+            background-color: #005995 !important;
             color: white !important;
             border-radius: 8px !important;
             cursor: pointer !important;
@@ -552,7 +546,6 @@ def apply_face_blur_ai(img_file):
         st.error(f"AI 비식별화 중 오류 발생: {e}")
         # 오류 발생 시 시스템이 멈추지 않도록 압축된 이미지 바이트를 안전하게 반환
         return compressed_bytes
-
 
 # --- 6. AI 분석 실행 ---
 
