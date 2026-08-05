@@ -138,30 +138,31 @@ def compress_image(uploaded_file):
 # (이후 기존의 CSS 설정 및 나머지 코드를 이어 붙이시면 됩니다.)
 # 주의: 아래쪽에 있는 st.set_page_config(page_title="KYWA AI 위험성평가 시스템", ...) 코드는 삭제하세요.
 
-# Pretendard 웹 폰트 적용 및 전역 스타일링
+# Pretendard 웹 폰트 적용 및 전역 스타일링 (업로드 버튼 겹침 수정 버전)
 st.markdown("""
     <style>
-    /* 1. Pretendard 웹 폰트 불러오기 및 전역 요소 적용 */
+    /* 1. Pretendard 웹 폰트 불러오기 */
     @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 
-    html, body, [class*="st-"], [data-testid="stWidgetLabel"] p {
+    /* 2. [class*="st-"] 선택자 대신 특정 텍스트 요소에만 폰트 적용 (아이콘 폰트 훼손 방지) */
+    html, body, p, span, div[data-testid="stMarkdownContainer"] p, [data-testid="stWidgetLabel"] p, button {
         font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif !important;
         color: var(--text-color);
-        letter-spacing: -0.01em; /* 가독성을 위한 미세 자간 조정 */
+        letter-spacing: -0.01em;
     }
 
-    /* 2. 상단 헤더 메뉴 및 푸터 제거 */
+    /* 3. 상단 헤더 메뉴 및 푸터 제거 */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     #MainMenu {visibility: hidden;}
     
-    /* 3. 여백 및 시각적 레이아웃 조절 */
+    /* 4. 여백 및 시각적 레이아웃 조절 */
     .block-container {
         padding-top: 1rem;
         padding-bottom: 1.5rem;
     }
 
-    /* 4. 기존 데이터프레임 및 이미지 설정 유지 */
+    /* 5. 기존 데이터프레임 및 이미지 설정 유지 */
     .stDataFrame {
         width: 100% !important;
     }
