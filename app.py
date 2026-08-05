@@ -143,17 +143,6 @@ def compress_image(uploaded_file):
 # ==============================================================================
 st.markdown("""
     <style>
-
-    /* Pretendard 웹폰트 로드 */
-    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
-
-    /* 전역 폰트 강제 적용 (아이콘 영역 제외) */
-    html, body, p, span, h1, h2, h3, h4, h5, h6, input, button, textarea,
-    div[data-testid="stMarkdownContainer"] p, 
-    [data-testid="stWidgetLabel"] p {
-        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
-    }
-
     /* 1. 상단 헤더 메뉴 및 푸터 제거 */
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
