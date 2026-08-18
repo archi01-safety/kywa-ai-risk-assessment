@@ -376,7 +376,7 @@ with col1:
     
     # config.json의 departments 리스트를 사용합니다.
     담당부서_list = cfg['ui_options']['departments']
-    selected_dept = st.selectbox("• 소속 부서(팀) 선택 (필수)", 담당부서_list)
+    selected_dept = st.selectbox("• 소속 팀 선택 (필수)", 담당부서_list)
     
     st.markdown("### **📝 현장 상황 설명**")
     placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
