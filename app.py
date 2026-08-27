@@ -903,8 +903,8 @@ if dashboard_data is not None:
         # [1단] 유해위험요인 현황 카드
         with g_col1:
             with st.container(border=True):
-                if len(yearly_data.columns) >= 5:
-                    target_col_cat = yearly_data.columns[4] 
+                if len(yearly_data.columns) >= 6:
+                    target_col_cat = yearly_data.columns[5] 
                     st.write(f"**⚠️ {target_col_cat} 현황**")
                     if not yearly_data[target_col_cat].dropna().empty:
                         yearly_data[target_col_cat] = yearly_data[target_col_cat].astype(str).str.strip()
