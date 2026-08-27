@@ -189,7 +189,7 @@ st.markdown("""
     div[data-testid="stButton"] > button,
     div.stButton > button,
     .stButton button {
-        background-color: #409933 !important;
+        background-color: #006633 !important;
         color: #ffffff !important;
         padding: 0.5rem 1rem !important;
         border-radius: 0.5rem !important;
@@ -220,7 +220,7 @@ st.markdown("""
     /* 7. 로고 및 타이틀 커스텀 스타일 */
     .logo-img { cursor: pointer; display: block; margin-top: 2px; }
     .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #409933 !important; }
+    .refresh-title:hover { color: #006633 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -343,7 +343,7 @@ with header_col1:
         # 로고 로딩 실패 시 텍스트(영문 약어 x KYWA)로 대체 표출
         st.markdown(f'''
             <a href="{inst_url}" target="_blank" style="text-decoration:none; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
-                <span style="color:#409933;">{inst_abbr}</span> 
+                <span style="color:#006633;">{inst_abbr}</span> 
                 <span style="color:#000000;">x</span> 
                 <span style="color:#FF4B4B;">KYWA</span>
             </a>
@@ -407,7 +407,7 @@ st.markdown("""
             display: block !important;
             margin: 10px auto !important;
             padding: 10px 20px !important;
-            background-color: #409933 !important;
+            background-color: #006633 !important;
             color: white !important;
             border-radius: 8px !important;
             cursor: pointer !important;
