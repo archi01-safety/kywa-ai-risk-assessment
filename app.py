@@ -265,6 +265,47 @@ except Exception as e:
     st.stop()
 
 
+def search_kosha_guide(search_keyword):
+    """KOSHA GUIDE API 호출 함수"""
+    import requests
+    import urllib.parse
+    
+    decoding_service_key = "801f7d06fa1418ec27119eea23fac9fa6aeec50a1a6e6680ea8197534e50e708"
+    endpoint = "https://apis.data.go.kr/B552468/koshaguide/getKoshaGuide"
+    
+    params = {
+        'serviceKey': urllib.parse.unquote(decoding_service_key),
+        'pageNo': '1',
+        'numOfRows': '5',
+        'callApiId': '1050',
+        'techGdlnNm': search_keyword
+    }
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    
+    try:
+        res = requests.get(endpoint, params=params, headers=headers, timeout=5)
+        
+        if res.status_code == 200:
+            data = res.json()
+            body = data.get('body', {})
+            items_container = body.get('items', {})
+            
+            if not items_container:
+                return []
+                
+            items = items_container.get('item', [])
+            if isinstance(items, dict):
+                items = [items]
+                
+            return items
+            
+        return []
+    except Exception:
+        return []
+
 # --- [2단계] 구글 드라이브/시트 전송 함수 ---
 
 def upload_photo_to_drive(file_obj, filename):
@@ -797,6 +838,76 @@ if st.session_state.analysis_results:
     # 수정된 데이터를 즉시 세션 상태에 업데이트
     st.session_state.final_data = edited_df.to_dict('records')
 
+# ------------------------------------------------------------------
+# 💡 KOSHA GUIDE (자율 안전보건가이드) 연동 섹션 (분석 전/후 분기 처리)
+# ------------------------------------------------------------------
+st.write("")
+with st.expander("📚 **관련 KOSHA GUIDE (자율 안전보건가이드) 조회 및 다운로드**", expanded=True):
+    st.caption("※ 산업안전보건공단 Open API 연동: 법적 최소 기준 외에 현장에 바로 적용 가능한 자율 기술지침 원문 제공")
+    
+    # 🛠️ [수정 포인트] 분석 완료 여부에 따른 화면 분기
+    if 'edited_df' in locals() and edited_df is not None and not edited_df.empty:
+        # ------------------------------------------------------------------
+        # [상태 2] 분석 완료 후: 키워드 추출 및 API 결과 출력
+        # ------------------------------------------------------------------
+        search_kw = ""
+        first_row = edited_df.iloc[0]
+        scenario_text = str(first_row.get('scenario', ''))
+        law_text = str(first_row.get('law', ''))
+        full_text = f"{scenario_text} {law_text}"
+        
+        # 작업 및 기계/기구 키워드를 상단에 배치
+        target_keywords = [
+            '용접', '비계', '사다리', '지게차', '크레인', '고소작업대',  # 작업/기구 (구체적)
+            '개구부', '지붕', '난간', '밀폐공간',                     # 장소/환경
+            '추락', '감전', '화재', '폭발', '질식', '낙하'              # 위험 유형 (일반적)
+        ]
+        
+        for kw in target_keywords:
+            if kw in full_text:
+                search_kw = kw
+                break
+        
+        if not search_kw and scenario_text:
+            words = [w for w in scenario_text.split() if len(w) >= 2 and w not in ['작업', '안전', '위험', '발생', '미흡', '조치']]
+            if words:
+                search_kw = words[0]
+        
+        if not search_kw:
+            search_kw = "추락"
+
+        # KOSHA API 호출
+        guides = search_kosha_guide(search_kw)
+        
+        if guides:
+            st.success(f"키워드 **'{search_kw}'** 관련 코샤가이드 {len(guides)}건이 검색되었습니다.")
+            for g in guides:
+                rule_nm = g.get('techGdlnNm', '기술지침 가이드')    # 지침명
+                rule_no = g.get('techGdlnNo', '')                 # 지침번호
+                down_url = g.get('fileDownloadUrl', '')           # 다운로드 URL
+
+                c1, c2 = st.columns([3, 1])
+                with c1:
+                    if rule_no:
+                        st.markdown(f"• **[{rule_no}]** {rule_nm}")
+                    else:
+                        st.markdown(f"• **{rule_nm}**")
+                with c2:
+                    if down_url:
+                        st.link_button("📥 지침 다운로드", down_url, use_container_width=True)
+                    else:
+                        st.caption("링크 없음")
+        else:
+            st.info(f"키워드 '{search_kw}'에 대한 별도 KOSHA GUIDE 검색 결과가 없거나 준비 중입니다.")
+            
+    else:
+        # ------------------------------------------------------------------
+        # [상태 1] 분석 전 (초기 화면): 기능 안내 메시지 출력
+        # ------------------------------------------------------------------
+        st.info("💡 **위험성평가 분석을 실행하시면**, 추출된 핵심 위험요인에 맞춘 자율 기술지침(KOSHA GUIDE) 원문 다운로드 링크가 이곳에 자동으로 제공됩니다.")
+
+# ------------------------------------------------------------------
+    
     # --- [3단계] 전송 버튼 로직 ---
     st.write("")
     if st.button(f"✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
