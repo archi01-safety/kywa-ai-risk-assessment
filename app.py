@@ -499,7 +499,7 @@ def apply_face_blur_ai(img_file):
         """
         
         # 모델 버전을 latest 대신 안정화된 버전으로 명시적 고정
-        model_name = "gemini-1.5-flash" 
+        model_name = "gemini-3.6" 
         
         max_retries = 3
         response = None
