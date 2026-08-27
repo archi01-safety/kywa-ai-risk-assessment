@@ -138,41 +138,101 @@ def compress_image(uploaded_file):
 # (이후 기존의 CSS 설정 및 나머지 코드를 이어 붙이시면 됩니다.)
 # 주의: 아래쪽에 있는 st.set_page_config(page_title="KYWA AI 위험성평가 시스템", ...) 코드는 삭제하세요.
 
-# [수정 2] 파라미터 이름을 unsafe_allow_html=True 로 변경
+# ==============================================================================
+# [통합 CSS] 전역 스타일, 레이아웃 및 버튼 호버 커스텀 (하나의 블록으로 통합)
+# ==============================================================================
 st.markdown("""
     <style>
-    /* 1. 상단 헤더 메뉴 및 푸터 제거 (추가됨) */
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
+    /* 1. 상단 헤더 메뉴 및 푸터 제거 */
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important;}
     
-    /* 2. 상단 여백 조절 (추가됨) */
+    /* 2. 상단 여백 조절 */
     .block-container {
-        padding-top: 0rem;
-        padding-bottom: 1rem;
+        padding-top: 1rem !important;
+        padding-bottom: 1.5rem !important;
     }
 
-    /* 기존 코드 내용 유지 */
-    html, body, [data-testid="stWidgetLabel"] p {
-        color: var(--text-color);
+    /* 3. 기본 라이트 모드 (오프화이트 배경 + 흰색 카드) */
+    .stApp {
+        background-color: #f8f9fa !important;
     }
-    
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #ffffff !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    /* 4. 다크 모드 자동 감지 및 적용 (모바일 & PC 공통) */
+    @media (prefers-color-scheme: dark) {
+        .stApp {
+            background-color: #121212 !important; /* 다크모드 배경 */
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #1e1e1e !important; /* 다크모드 카드 배경 */
+            border-color: #333333 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+        }
+    }
+
+    /* 5. 데이터프레임 및 이미지 설정 */
     .stDataFrame {
         width: 100% !important;
     }
-    
     img {
         max-width: 100%;
         filter: brightness(var(--image-brightness, 1));
     }
-    </style>
-    """, unsafe_allow_html=True)
 
-# 1. 환경 설정 및 보안 우회 (필요한 경우)
+    /* 6. 버튼 스타일 및 호버(Hover) 액션 */
+    div[data-testid="stButton"] > button,
+    div.stButton > button,
+    .stButton button {
+        background-color: #409933 !important;
+        color: #ffffff !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 0.5rem !important;
+        font-weight: bold !important;
+        border: 1px solid transparent !important;
+        transition: all 0.25s ease-in-out !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* 마우스 호버 시 */
+    div[data-testid="stButton"] > button:hover,
+    div.stButton > button:hover,
+    .stButton button:hover {
+        background-color: #2e6e24 !important;
+        color: #ffffff !important;
+        border: 1px solid transparent !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    /* 버튼 클릭(Active) 시 */
+    div[data-testid="stButton"] > button:active,
+    div.stButton > button:active {
+        transform: translateY(0px) !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* 7. 로고 및 타이틀 커스텀 스타일 */
+    .logo-img { cursor: pointer; display: block; margin-top: 2px; }
+    .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
+    .refresh-title:hover { color: #409933 !important; }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==============================================================================
+# [메인 로직 및 파이썬 기능 구현 영역]
+# ==============================================================================
+
+# 1. 환경 설정 및 보안 우회
 os.environ['PYTHONHTTPSVERIFY'] = '0'
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# [0] 설정 파일 로드 (가장 먼저 실행되어야 합니다)
+# [0] 설정 파일 로드
 def load_config():
     with open('config.json', 'r', encoding='utf-8') as f:
         return json.load(f)
@@ -191,19 +251,12 @@ if "analysis_results" not in st.session_state:
 if "final_data" not in st.session_state:
     st.session_state.final_data = None
 
-# 3. 모델 및 클라이언트 설정 (최신 google-genai 방식)
+# 3. 모델 및 클라이언트 설정
 try:
     if "GEMINI_API_KEY" in st.secrets:
         api_key = st.secrets["GEMINI_API_KEY"]
-        
-        # 클라이언트 객체 생성 (기존 genai.configure 대체)
-        # 2026년 기준, 별도의 transport 설정 없이도 최적화된 통신을 지원합니다.
         client = genai.Client(api_key=api_key)
-        
-        # 모델 이름 정의 (2026년 표준인 gemini-2.0-flash 권장, gemini-flash-latest 사용중임)
-        # 만약 기존 모델을 유지하고 싶다면 'gemini-1.5-flash' 등을 입력하세요.
         model_name = "gemini-flash-latest" 
-        
     else:
         st.error("Secrets에 'GEMINI_API_KEY'가 설정되지 않았습니다.")
         st.stop()
@@ -212,11 +265,10 @@ except Exception as e:
     st.stop()
 
 
-# --- [2단계] 구글 드라이브/시트 전송 함수 추가 ---
+# --- [2단계] 구글 드라이브/시트 전송 함수 ---
 
 def upload_photo_to_drive(file_obj, filename):
     try:
-        # Apps Script 웹 앱 URL (방금 복사한 주소)
         apps_script_url = "https://script.google.com/macros/s/AKfycbwMhipDH9zMVajhbD2LBXGgnJdaqs3oHmatjqtvAXWL0PXhInk6tqsqRcb6MJkZFChm/exec"
         
         file_obj.seek(0)
@@ -227,7 +279,6 @@ def upload_photo_to_drive(file_obj, filename):
             "fileBase64": img_base64
         }
         
-        # POST 요청으로 사진 전송
         response = requests.post(apps_script_url, json=payload)
         res_data = response.json()
         
@@ -237,70 +288,19 @@ def upload_photo_to_drive(file_obj, filename):
 
 def append_row_to_sheet(row_data):
     try:
-        # [확인 필요] 실제 시트 탭 이름과 공백이 정확히 일치해야 합니다.
-        # 만약 구글폼 연동 시트라면 보통 '설문지 응답 1' 입니다.
         range_name = "'시트1'!A1" 
-        
         body = {'values': [row_data]}
         sheets_service.spreadsheets().values().append(
             spreadsheetId=SPREADSHEET_ID, 
             range=range_name,
             valueInputOption='USER_ENTERED', 
-            insertDataOption='INSERT_ROWS', # [추가] 새 행을 삽입하며 추가하도록 명시
+            insertDataOption='INSERT_ROWS',
             body=body
         ).execute()
         return True
     except Exception as e:
         st.error(f"시트 저장 실패: {str(e)}")
         return False
-
-# --- [추가] 버튼 스타일 설정 ---
-st.markdown("""
-    <style>
-    /* 모든 Streamlit 버튼 스타일 수정 */
-    div.stButton > button {
-        background-color: #FF701E !important; /* 기본 붉은색 */
-        color: white !important;
-        border: none !important;
-        padding: 0.5rem 1rem !important;
-        border-radius: 0.5rem !important;
-        font-weight: bold !important;
-        transition: all 0.3s ease !important;
-    }
-
-    /* 마우스 호버(Hover) 시 효과 */
-    div.stButton > button:hover {
-        background-color: #ff3333 !important; /* 마우스 올렸을 때 더 진한 빨강 */
-        color: white !important;
-        border: none !important;
-        transform: scale(1.01); /* 아주 살짝 커지는 효과 */
-    }
-    
-    /* Word/Excel 저장 버튼 등 일반 버튼도 동일 적용을 원치 않으시면 위 범위를 좁힐 수 있습니다 */
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 4. 스타일 및 헤더 디자인 (안전 모드) ---
-st.markdown("""
-    <style>
-    /* 버튼 스타일 */
-    div.stButton > button {
-        background-color: #FF701E !important;
-        color: white !important;
-        font-weight: bold !important;
-        border-radius: 0.5rem !important;
-        transition: all 0.3s ease !important;
-    }
-    div.stButton > button:hover {
-        background-color: #ff3333 !important;
-        transform: scale(1.01);
-    }
-    /* 로고 및 타이틀 스타일 */
-    .logo-img { cursor: pointer; display: block; margin-top: 2px; }
-    .refresh-title { text-decoration: none !important; color: inherit !important; cursor: pointer; }
-    .refresh-title:hover { color: #FF701E !important; }
-    </style>
-""", unsafe_allow_html=True)
 
 # 변수 초기화
 local_logo_url = None
@@ -343,7 +343,7 @@ with header_col1:
         # 로고 로딩 실패 시 텍스트(영문 약어 x KYWA)로 대체 표출
         st.markdown(f'''
             <a href="{inst_url}" target="_blank" style="text-decoration:none; font-weight:bold; font-size:24px; display:block; margin-top:10px;">
-                <span style="color:#FF701E;">{inst_abbr}</span> 
+                <span style="color:#409933;">{inst_abbr}</span> 
                 <span style="color:#000000;">x</span> 
                 <span style="color:#FF4B4B;">KYWA</span>
             </a>
@@ -377,9 +377,6 @@ with col1:
     # config.json의 departments 리스트를 사용합니다.
     담당부서_list = cfg['ui_options']['departments']
     selected_dept = st.selectbox("• 담당 부서 선택 (필수)", 담당부서_list)
-
-    # 💡 바로 여기에 '이름' 입력 코드를 삽입하셔야 합니다!
-    user_name = st.text_input("• 이름 입력 (필수)", placeholder="성명을 입력하세요.", key="user_name_input")
     
     st.markdown("### **📝 현장 상황 설명**")
     placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
@@ -410,7 +407,7 @@ st.markdown("""
             display: block !important;
             margin: 10px auto !important;
             padding: 10px 20px !important;
-            background-color: #FF701E !important;
+            background-color: #409933 !important;
             color: white !important;
             border-radius: 8px !important;
             cursor: pointer !important;
@@ -501,17 +498,43 @@ def apply_face_blur_ai(img_file):
         JSON 형식: {"faces": [[ymin, xmin, ymax, xmax], ...]}
         """
         
-        response = client.models.generate_content(
-            model=model_name,
-            contents=[prompt, pil_img],
-            config=genai.types.GenerateContentConfig(
-                response_mime_type="application/json"
-            )
-        )
+        # 모델 버전을 latest 대신 안정화된 버전으로 명시적 고정
+        model_name = "gemini-1.5-flash" 
+        
+        max_retries = 3
+        response = None
+        
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[prompt, pil_img],
+                    config=genai.types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    )
+                )
+                break  # 성공 시 루프 탈출
+            except Exception as e:
+                error_msg = str(e).lower()
+                # 503 서버 에러 또는 429 할당량 에러 발생 시 재시도
+                if "503" in error_msg or "unavailable" in error_msg or "429" in error_msg:
+                    if attempt < max_retries - 1:
+                        time.sleep(2 * (attempt + 1))  # 2초, 4초 점진적 대기시간 증가
+                        continue
+                
+                # 재시도 횟수 초과 또는 다른 종류의 에러 발생 시 원본 반환
+                st.error(f"AI 비식별화 API 호출 중 오류 발생: {e}")
+                return compressed_bytes
+
+        if response is None:
+            return compressed_bytes
 
         # 4. 좌표 파싱 및 블러 처리
-        face_data = json.loads(response.text)
-        faces = face_data.get("faces", [])
+        try:
+            face_data = json.loads(response.text)
+            faces = face_data.get("faces", [])
+        except json.JSONDecodeError:
+            return compressed_bytes
 
         # 탐지된 얼굴이 없으면 압축된 원본 이미지 반환 (속도 및 대역폭 이점 유지)
         if not faces:
@@ -522,6 +545,11 @@ def apply_face_blur_ai(img_file):
             # 상대 좌표를 절대 좌표로 변환 (0~1000 -> 실제 압축 이미지의 픽셀 좌표)
             left, top = int(xmin * w / 1000), int(ymin * h / 1000)
             right, bottom = int(xmax * w / 1000), int(ymax * h / 1000)
+            
+            # 하단 배제 영역 10% 안전 임계값 적용
+            if top > h * 0.90:
+                continue
+            bottom = min(bottom, int(h * 0.90))
             
             rw, rh = right - left, bottom - top
             if rw <= 0 or rh <= 0: 
@@ -549,7 +577,6 @@ def apply_face_blur_ai(img_file):
         st.error(f"AI 비식별화 중 오류 발생: {e}")
         # 오류 발생 시 시스템이 멈추지 않도록 압축된 이미지 바이트를 안전하게 반환
         return compressed_bytes
-
 
 # --- 6. AI 분석 실행 ---
 
@@ -641,11 +668,12 @@ if st.button(f"🚀 {cfg['institution']['abbr']} AI 위험요인 분석 시작",
                 1. 강도 4점(사망 또는 영구 장애), 3점(중대한 부상/휴업 수반), 2점(응급처치 이상/비휴업), 1점(경미한 부상)
 
                 [판정 원칙 및 예외 기준]
-                1. 일상적 위험 vs 산업적 위험 구분: 일상적 위험에 포함되는 단순 전도 등은 강도 1점 또는 2점을 원칙으로 함.
+                1. 일상적 위험 vs 산업적 위험 구분: 단순 전도 등은 강도 1점을 원칙으로 함.
+                2. 점수 조정 예시: 보도블럭 파손(빈도 2, 강도 1 -> 2점), 바닥 물기(빈도 3, 강도 1 -> 3점), 키보드 및 마우스 작업(빈도 3, 강도 1 -> 3점)
 
                 [종합 등급 판정 가이드라인]
-                - 매우 낮음(1~5점), 낮음(6~11점), 보통(12~15점), 높음(16~18점), 매우 높음(19~20점)
-                - 16점부터는 '허용 불가능한 수준'의 사안으로 판단하므로 일상적 위험이나 경미한 사항은 최대 15점을 기준으로 함.
+                - 매우 낮음(1~3점), 낮음(4~6점), 보통(8점), 높음(9~12점), 매우 높음(16~20점)
+                - 8점부터는 '허용 불가능한 수준'의 사안으로 판단하므로 경미한 사항은 최대 6점을 기준으로 함.
                 - 모든 문장은 명사형 종결.
                 - 반드시 다음 JSON 형식을 엄수하세요: 키는 category, location, scenario, p, s, score, grade, law, solution 이며 리스트 [] 안에 담아 출력하세요.
                 """
@@ -803,8 +831,7 @@ if st.session_state.analysis_results:
                         sheet_row = [
                             current_time,           # 타임스탬프
                             selected_facility,      # 시설명
-                            selected_dept,          # 담당 부서
-                            user_name,              # 이름
+                            selected_dept,          # 담당 팀명
                             row.get("location"),    # 장소
                             row.get("category"),    # 유해위험요인(분류)
                             row.get("scenario"),    # 위험상황
@@ -876,16 +903,21 @@ if dashboard_data is not None:
     else:
         st.subheader("📊 실시간 점검 데이터 현황 (2026년)")
         
-        # 3. 상단 지표
+        # 3. 상단 지표 (카드 스타일링 적용)
         total_count = len(yearly_data)
         m1, m2 = st.columns(2)
-        m1.metric("올해 누적 점검 건수", f"{total_count} 건")
         
-        author_col = "작성자 성명" 
-        if author_col in yearly_data.columns:
-            m2.metric("참여 인원(명)", f"{yearly_data[author_col].nunique()} 명")
-        else:
-            m2.metric("점검결과 제출 시설", f"{yearly_data['시설명'].nunique()} 개 시설")
+        with m1:
+            with st.container(border=True):
+                st.metric("올해 누적 점검 건수", f"{total_count} 건")
+        
+        with m2:
+            with st.container(border=True):
+                author_col = "작성자 성명" 
+                if author_col in yearly_data.columns:
+                    st.metric("참여 인원(명)", f"{yearly_data[author_col].nunique()} 명")
+                else:
+                    st.metric("점검결과 제출 시설", f"{yearly_data['시설명'].nunique()} 개 시설")
 
         # --- 색상 맵 설정 ---
         CATEGORY_COLOR_MAP = {
@@ -910,7 +942,6 @@ if dashboard_data is not None:
             "활동 안전": "#388E3C"       # 초록색 (일상 활동/야외)
         }
 
-
         # 1. 20가지 안전관리 테마 색상 팔레트
         SAFETY_PALETTE = [
             "#B93444", "#6B5B95", "#E2725B", "#5B84B1", "#92B06A", 
@@ -920,7 +951,6 @@ if dashboard_data is not None:
         ]
 
         # 2. 동적 색상 할당 맵 생성 (시설 리스트 자동 추출 기반)
-        # config.json에서 시설 리스트를 가져오거나, 없을 경우 현재 세션의 데이터를 기반으로 자동 생성
         facility_options = cfg.get("facilities", ["기본시설"])
 
         FACILITY_COLOR_MAP = {
@@ -928,73 +958,75 @@ if dashboard_data is not None:
             for i, facility in enumerate(facility_options)
         }
 
-
-# --- 4. 그래프 시각화 영역 (2단 구성으로 변경) ---
+        # --- 4. 그래프 시각화 영역 (2단 카드 구성) ---
         g_col1, g_col2 = st.columns(2)
 
-        # [1단] 유해위험요인 현황 (E컬럼 - Index 4)
+        # [1단] 유해위험요인 현황 카드
         with g_col1:
-            if len(yearly_data.columns) >= 6:
-                target_col_cat = yearly_data.columns[5] 
-                st.write(f"**⚠️ {target_col_cat} 현황**")
-                if not yearly_data[target_col_cat].dropna().empty:
-                    yearly_data[target_col_cat] = yearly_data[target_col_cat].astype(str).str.strip()
+            with st.container(border=True):
+                if len(yearly_data.columns) >= 5:
+                    target_col_cat = yearly_data.columns[4] 
+                    st.write(f"**⚠️ {target_col_cat} 현황**")
+                    if not yearly_data[target_col_cat].dropna().empty:
+                        yearly_data[target_col_cat] = yearly_data[target_col_cat].astype(str).str.strip()
+                        
+                        fig_pie = px.pie(
+                            yearly_data, names=target_col_cat, hole=0.3,
+                            color=target_col_cat, color_discrete_map=CATEGORY_COLOR_MAP
+                        )
+                        fig_pie.update_traces(
+                            textinfo='percent+value', 
+                            texttemplate='%{percent:.0%}<br>(%{value}건)',
+                            insidetextorientation='horizontal',
+                            textfont_size=11
+                        )
+                        fig_pie.update_layout(
+                            margin=dict(t=20, b=60, l=0, r=0), 
+                            height=400, 
+                            showlegend=True,
+                            legend=dict(
+                                orientation="h",      
+                                yanchor="top",        
+                                y=-0.1,               
+                                xanchor="center",     
+                                x=0.5,
+                                font=dict(size=10),   
+                                itemwidth=30          
+                            ),
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            dragmode=False
+                        )
+                        st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
+
+        # [2단] 시설별 점검 건수 카드
+        with g_col2:
+            with st.container(border=True):
+                target_col_fac = "시설명" 
+                if target_col_fac in yearly_data.columns:
+                    st.write(f"**🏢 {target_col_fac}별 건수**")
+                    yearly_data[target_col_fac] = yearly_data[target_col_fac].astype(str).str.strip()
+                    fac_counts = yearly_data[target_col_fac].value_counts().reset_index()
+                    fac_counts.columns = [target_col_fac, '건수']
                     
-                    fig_pie = px.pie(
-                        yearly_data, names=target_col_cat, hole=0.3,
-                        color=target_col_cat, color_discrete_map=CATEGORY_COLOR_MAP
+                    fig_bar = px.bar(
+                        fac_counts, x=target_col_fac, y='건수', color=target_col_fac,
+                        color_discrete_map=FACILITY_COLOR_MAP
                     )
-                    fig_pie.update_traces(
-                        textinfo='percent+value', 
-                        texttemplate='%{percent:.0%}<br>(%{value}건)',
-                        insidetextorientation='horizontal',
+                    fig_bar.update_traces(
+                        texttemplate='%{y}건', 
+                        textposition='outside',
                         textfont_size=11
                     )
-                    fig_pie.update_layout(
-                        margin=dict(t=30, b=80, l=0, r=0), 
-                        height=450, 
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",      
-                            yanchor="top",        
-                            y=-0.1,               
-                            xanchor="center",     
-                            x=0.5,
-                            font=dict(size=10),   
-                            itemwidth=30          
-                        ),
+                    fig_bar.update_layout(
+                        margin=dict(t=20, b=0, l=0, r=0), 
+                        height=400,
+                        showlegend=False,
+                        xaxis_title=None, yaxis_title=None,
                         paper_bgcolor='rgba(0,0,0,0)',
-                        dragmode=False
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        dragmode=False 
                     )
-                    st.plotly_chart(fig_pie, width="stretch", config={'displayModeBar': False})
-
-        # [2단] 시설별 점검 건수
-        with g_col2:
-            target_col_fac = "시설명" 
-            if target_col_fac in yearly_data.columns:
-                st.write(f"**🏢 {target_col_fac}별 건수**")
-                yearly_data[target_col_fac] = yearly_data[target_col_fac].astype(str).str.strip()
-                fac_counts = yearly_data[target_col_fac].value_counts().reset_index()
-                fac_counts.columns = [target_col_fac, '건수']
-                
-                fig_bar = px.bar(
-                    fac_counts, x=target_col_fac, y='건수', color=target_col_fac,
-                    color_discrete_map=FACILITY_COLOR_MAP
-                )
-                fig_bar.update_traces(
-                    texttemplate='%{y}건', 
-                    textposition='outside',
-                    textfont_size=11
-                )
-                fig_bar.update_layout(
-                    margin=dict(t=35, b=0, l=0, r=0), height=450, # 높이를 1단과 동일하게 450으로 맞춤 
-                    showlegend=False,
-                    xaxis_title=None, yaxis_title=None,
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    dragmode=False 
-                )
-                st.plotly_chart(fig_bar, width="stretch", config={'displayModeBar': False})
+                    st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 # --- 푸터(Footer) 섹션 ---
 st.write("") # 간격 확보
