@@ -498,17 +498,43 @@ def apply_face_blur_ai(img_file):
         JSON 형식: {"faces": [[ymin, xmin, ymax, xmax], ...]}
         """
         
-        response = client.models.generate_content(
-            model=model_name,
-            contents=[prompt, pil_img],
-            config=genai.types.GenerateContentConfig(
-                response_mime_type="application/json"
-            )
-        )
+        # 모델 버전을 latest 대신 안정화된 버전으로 명시적 고정
+        model_name = "gemini-1.5-flash" 
+        
+        max_retries = 3
+        response = None
+        
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[prompt, pil_img],
+                    config=genai.types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    )
+                )
+                break  # 성공 시 루프 탈출
+            except Exception as e:
+                error_msg = str(e).lower()
+                # 503 서버 에러 또는 429 할당량 에러 발생 시 재시도
+                if "503" in error_msg or "unavailable" in error_msg or "429" in error_msg:
+                    if attempt < max_retries - 1:
+                        time.sleep(2 * (attempt + 1))  # 2초, 4초 점진적 대기시간 증가
+                        continue
+                
+                # 재시도 횟수 초과 또는 다른 종류의 에러 발생 시 원본 반환
+                st.error(f"AI 비식별화 API 호출 중 오류 발생: {e}")
+                return compressed_bytes
+
+        if response is None:
+            return compressed_bytes
 
         # 4. 좌표 파싱 및 블러 처리
-        face_data = json.loads(response.text)
-        faces = face_data.get("faces", [])
+        try:
+            face_data = json.loads(response.text)
+            faces = face_data.get("faces", [])
+        except json.JSONDecodeError:
+            return compressed_bytes
 
         # 탐지된 얼굴이 없으면 압축된 원본 이미지 반환 (속도 및 대역폭 이점 유지)
         if not faces:
@@ -519,6 +545,11 @@ def apply_face_blur_ai(img_file):
             # 상대 좌표를 절대 좌표로 변환 (0~1000 -> 실제 압축 이미지의 픽셀 좌표)
             left, top = int(xmin * w / 1000), int(ymin * h / 1000)
             right, bottom = int(xmax * w / 1000), int(ymax * h / 1000)
+            
+            # 하단 배제 영역 10% 안전 임계값 적용
+            if top > h * 0.90:
+                continue
+            bottom = min(bottom, int(h * 0.90))
             
             rw, rh = right - left, bottom - top
             if rw <= 0 or rh <= 0: 
