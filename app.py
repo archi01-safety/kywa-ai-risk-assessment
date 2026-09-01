@@ -1112,7 +1112,7 @@ if dashboard_data is not None:
         # [2단] 시설별 점검 건수 카드
         with g_col2:
             with st.container(border=True):
-                target_col_fac = "시설명" 
+                target_col_fac = "담당 부서" 
                 if target_col_fac in yearly_data.columns:
                     st.write(f"**🏢 {target_col_fac}별 건수**")
                     yearly_data[target_col_fac] = yearly_data[target_col_fac].astype(str).str.strip()
