@@ -417,7 +417,7 @@ with col1:
     
     # config.json의 departments 리스트를 사용합니다.
     담당부서_list = cfg['ui_options']['departments']
-    selected_dept = st.selectbox("• 담당 부서 선택 (필수)", 담당부서_list)
+    selected_dept = st.selectbox("• 사업장 선택 (필수)", 담당부서_list)
     
     st.markdown("### **📝 현장 상황 설명**")
     placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
@@ -1028,7 +1028,7 @@ if dashboard_data is not None:
                 if author_col in yearly_data.columns:
                     st.metric("참여 인원(명)", f"{yearly_data[author_col].nunique()} 명")
                 else:
-                    st.metric("점검결과 제출 시설", f"{yearly_data['시설명'].nunique()} 개 시설")
+                    st.metric("점검결과 제출 사업장", f"{yearly_data['시설명'].nunique()} 개 사업장")
 
         # --- 색상 맵 설정 ---
         CATEGORY_COLOR_MAP = {
@@ -1112,7 +1112,7 @@ if dashboard_data is not None:
         # [2단] 시설별 점검 건수 카드
         with g_col2:
             with st.container(border=True):
-                target_col_fac = "담당 부서" 
+                target_col_fac = "사업장" 
                 if target_col_fac in yearly_data.columns:
                     st.write(f"**🏢 {target_col_fac}별 건수**")
                     yearly_data[target_col_fac] = yearly_data[target_col_fac].astype(str).str.strip()
