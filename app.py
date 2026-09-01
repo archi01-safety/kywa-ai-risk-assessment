@@ -1114,7 +1114,7 @@ if dashboard_data is not None:
             with st.container(border=True):
                 target_col_fac = "사업장" 
                 if target_col_fac in yearly_data.columns:
-                    st.write(f"**🏢 {target_col_fac}별 건수**")
+                    st.write(f"**🏢 {target_col_fac}별 점검결과 제출 건수**")
                     yearly_data[target_col_fac] = yearly_data[target_col_fac].astype(str).str.strip()
                     fac_counts = yearly_data[target_col_fac].value_counts().reset_index()
                     fac_counts.columns = [target_col_fac, '건수']
