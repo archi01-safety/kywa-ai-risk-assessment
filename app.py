@@ -1028,7 +1028,7 @@ if dashboard_data is not None:
                 if author_col in yearly_data.columns:
                     st.metric("참여 인원(명)", f"{yearly_data[author_col].nunique()} 명")
                 else:
-                    st.metric("점검결과 제출 사업장", f"{yearly_data['시설명'].nunique()} 개 사업장")
+                    st.metric("점검결과 제출 사업장", f"{yearly_data['사업장'].nunique()} 개 사업장")
 
         # --- 색상 맵 설정 ---
         CATEGORY_COLOR_MAP = {
