@@ -389,7 +389,7 @@ with header_col2:
 
 st.divider()
 
-# --- [1] UI 레이아웃 설정 (페이지 상단 어딘가에 이미 있을 것입니다) ---
+# --- [1] UI 레이아웃 설정 ---
 col1, col2 = st.columns([1, 1]) 
 
 with col1:
@@ -402,6 +402,9 @@ with col1:
     # config.json의 departments 리스트를 사용합니다.
     담당부서_list = cfg['ui_options']['departments']
     selected_dept = st.selectbox("• 담당 부서 선택 (필수)", 담당부서_list)
+    
+    # 작성자 이름 입력란
+    user_name = st.text_input("• 작성자 이름 (필수)", placeholder="예: 홍길동")
     
     st.markdown("### **📝 현장 상황 설명**")
     placeholder_text = "<예  시>\n1. A시설 2층 테라스 난간 흔들림\n2. B시설 정문 보도블록 파손으로 넘어질 위험\n  (자세히 작성할수록 정확한 결과가 나옵니다.)"
@@ -1098,4 +1101,3 @@ with footer_cols[0]:
 
 # 최하단 한 줄 강조
 st.markdown("<p style='font-size: 0.8rem; color: gray; text-align: center;'>Safe Together, KYWA AI Risk Assessment System</p>", unsafe_allow_html=True)
-
