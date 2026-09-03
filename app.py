@@ -851,7 +851,7 @@ with st.expander("📚 **관련 KOSHA GUIDE (기술지원규정) 조회 및 다�
 # ------------------------------------------------------------------
 
     
-    # --- [3단계] 전송 버튼 로직 ---
+# --- [3단계] 전송 버튼 로직 ---
     st.write("")
     if st.button(f"✅ {cfg['institution']['abbr']} 안전센터로 데이터 최종 전송", use_container_width=True):
         if sheets_service is None or drive_service is None:
@@ -871,7 +871,6 @@ with st.expander("📚 **관련 KOSHA GUIDE (기술지원규정) 조회 및 다�
                     # 비식별 이미지 확인 및 드라이브 업로드
                     if "final_secure_image" in st.session_state and st.session_state.final_secure_image:
                         filename = f"{selected_facility}_{timestamp_str}.jpg"
-                        # 앱스 스크립트 대신, 1단계에서 만든 서비스 계정 업로드 함수를 직접 호출합니다.
                         photo_link = upload_to_drive(
                             file_name=filename, 
                             file_content=st.session_state.final_secure_image, 
@@ -886,6 +885,7 @@ with st.expander("📚 **관련 KOSHA GUIDE (기술지원규정) 조회 및 다�
                             current_time,           # 타임스탬프
                             selected_facility,      # 시설명
                             selected_dept,          # 담당 부서
+                            user_name,              # 작성자 이름 (추가됨)
                             row.get("location"),    # 장소
                             row.get("category"),    # 유해위험요인(분류)
                             row.get("scenario"),    # 위험상황
@@ -904,8 +904,6 @@ with st.expander("📚 **관련 KOSHA GUIDE (기술지원규정) 조회 및 다�
                     if success_count > 0:
                         st.success(f"✅ 데이터 {success_count}건이 성공적으로 전송되었습니다!")
                         st.balloons()
-                        # 전송 후 데이터 초기화 (필요 시 주석 해제)
-                        # st.session_state.analysis_results = None
                         
                 except Exception as e:
                     st.error(f"❌ 전송 중 오류 발생: {e}")
