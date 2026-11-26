@@ -24,13 +24,10 @@ import datetime
 import base64
 import codecs
 import pandas as pd
-import numpy as np
-import cv2
 import plotly.express as px
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter
 from docx import Document
 import google.genai as genai  
-from PIL import Image, ImageFilter 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -493,17 +490,18 @@ with col2:
             st.info("💡 아래 '분석 시작' 버튼을 누르면 AI가 비식별화 후 분석을 시작합니다.")
 def apply_face_blur_ai(img_file):
     """
-    Gemini AI로 얼굴 좌표를 정밀 탐지하고 OpenCV로 블러링합니다.
+    Gemini AI로 얼굴 좌표를 정밀 탐지하고 Pillow로 블러 처리합니다.
     """
     try:
         # 1. 이미지 읽기 및 변환
         img_file.seek(0)
-        file_bytes = np.asarray(bytearray(img_file.read()), dtype=np.uint8)
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        if image is None: return img_file.getvalue()
-        
-        h, w, _ = image.shape
-        pil_img = Image.open(io.BytesIO(img_file.getvalue()))
+        image_bytes = img_file.read()
+        try:
+            with Image.open(io.BytesIO(image_bytes)) as source_image:
+                image = source_image.convert("RGB")
+        except OSError:
+            return image_bytes
+        w, h = image.size
 
         # 2. Gemini AI에게 얼굴 좌표 요청 (JSON 형식)
         # prompt에 '얼굴이 없다면 빈 리스트를 반환해'라고 명시하여 오류 방지
@@ -516,7 +514,7 @@ def apply_face_blur_ai(img_file):
         
         response = client.models.generate_content(
             model=model_name,
-            contents=[prompt, pil_img],
+            contents=[prompt, image],
             config=genai.types.GenerateContentConfig(
                 response_mime_type="application/json"
             )
@@ -532,29 +530,28 @@ def apply_face_blur_ai(img_file):
         for box in faces:
             ymin, xmin, ymax, xmax = box
             # 상대 좌표를 절대 좌표로 변환 (0~1000 -> 실제 픽셀)
-            left, top = int(xmin * w / 1000), int(ymin * h / 1000)
-            right, bottom = int(xmax * w / 1000), int(ymax * h / 1000)
+            left, top = max(0, int(xmin * w / 1000)), max(0, int(ymin * h / 1000))
+            right, bottom = min(w, int(xmax * w / 1000)), min(h, int(ymax * h / 1000))
             
             rw, rh = right - left, bottom - top
             if rw <= 0 or rh <= 0: continue
 
             # ROI 추출 및 블러 적용
-            face_roi = image[top:bottom, left:right]
-            
-            # 원형 마스크 생성 (사용자님의 기존 블러 로직 활용)
-            mask = np.zeros((rh, rw), dtype=np.uint8)
-            cv2.circle(mask, (rw // 2, rh // 2), min(rw, rh) // 2, (255), -1)
-            
-            # 블러 강도 설정 (level=21 정도가 적당함)
-            level = 21
-            blurred_roi = cv2.GaussianBlur(face_roi, (level, level), 0)
-            
-            mask_3ch = cv2.merge([mask, mask, mask])
-            image[top:bottom, left:right] = np.where(mask_3ch == 255, blurred_roi, face_roi)
+            face_roi = image.crop((left, top, right, bottom))
+            mask = Image.new("L", (rw, rh))
+            center_x, center_y = rw // 2, rh // 2
+            radius = min(rw, rh) // 2
+            ImageDraw.Draw(mask).ellipse(
+                (center_x - radius, center_y - radius, center_x + radius, center_y + radius),
+                fill=255,
+            )
+            blurred_roi = face_roi.filter(ImageFilter.GaussianBlur(radius=3.5))
+            image.paste(blurred_roi, (left, top), mask)
 
         # 4. 결과 인코딩
-        _, buffer = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        return buffer.tobytes()
+        output = io.BytesIO()
+        image.save(output, format="JPEG", quality=90)
+        return output.getvalue()
 
     except Exception as e:
         st.error(f"AI 비식별화 중 오류 발생: {e}")
